@@ -42,7 +42,7 @@
                 </div>
             </main>
             <section class="hero-image">
-                <img src="images/Stocks1.jpg" alt="Kijumbe financial management dashboard">
+                <img src="images/Stoks1.jpg" alt="Kijumbe financial management dashboard">
             </section>
         </div>
 

@@ -347,7 +347,7 @@ async function dashboard() {
 
             ${card(
                 "Recent Contributions",
-                contributionRows()
+                contributionRows(data.recent_contributions)
             )}
 
 
@@ -473,9 +473,61 @@ function renderRecentPayments(payments) {
 
 
 function stat(a,b,c,icon){return `<div class="card stat"><div><div class="stat-label">${a}</div><div class="stat-value">${b}</div><div class="stat-note">${c}</div></div><div class="stat-icon">${icon}</div></div>`}
-function contributionRows(){return `<div class="table-wrap"><table class="table"><thead><tr><th>Member</th><th>Round</th><th>Amount</th><th>Status</th></tr></thead><tbody>
-${state.members.slice(0,4).map((m,i)=>`<tr><td><div class="member-cell"><div class="avatar">${avatar(m.name)}</div>${m.name}</div></td><td>Round 4</td><td class="amount">${money(20000)}</td><td>${badge(i===3?"Pending":"Paid")}</td></tr>`).join("")}
-</tbody></table></div>`}
+
+function contributionRows(contributions = []) {
+
+    if (!contributions || contributions.length === 0) {
+        return `
+            <div class="empty-state">
+                <p>No recent contributions.</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div>
+            ${contributions.map(c => `
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:center;
+                    padding:10px 0;
+                    border-bottom:1px solid var(--border);
+                ">
+
+                    <div>
+                        <strong>
+                            ${escapeHtml(c.full_name || "-")}
+                        </strong>
+
+                        <small
+                            class="muted"
+                            style="display:block;margin-top:3px"
+                        >
+                            Round ${escapeHtml(String(c.round_number || "-"))}
+                        </small>
+                    </div>
+
+                    <div style="text-align:right">
+
+                        <strong>
+                            ${money(c.paid_amount || 0)}
+                        </strong>
+
+                        <small
+                            class="muted"
+                            style="display:block;margin-top:3px"
+                        >
+                            ${escapeHtml(c.status || "-")}
+                        </small>
+
+                    </div>
+
+                </div>
+            `).join("")}
+        </div>
+    `;
+}
 
 //add members
 
