@@ -41,6 +41,6 @@
             <p>Don't have an account? <a href="./register.php">Register here</a>.</p>
         </section>
     </div>
-    <script src="kijumbe.js?v=3"></script>
+    <script src="js/kijumbe.js?v=3"></script>
 </body>
 </html>
