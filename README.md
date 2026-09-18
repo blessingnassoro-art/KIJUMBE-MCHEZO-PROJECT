@@ -38,8 +38,8 @@ Then open:
 
 ## Important
 This is a MOCKUP, not the final backend implementation.
-- No MySQL connection exists yet.
-- No PHP authentication exists yet.
+- MySQL connection exists yet.
+- PHP authentication exists yet.
 - No real payment is processed.
 - AzamPay is represented only as a sandbox/demo UI.
 - In the real system, AzamPay credentials must stay on the PHP backend and successful provider responses must be verified before creating financial records.
