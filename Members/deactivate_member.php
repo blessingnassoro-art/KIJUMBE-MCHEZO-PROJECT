@@ -36,13 +36,13 @@ if ($id <= 0) {
 
 try {
 
-    /*
-     * Get the member.
-     */
+
+
     $check = $pdo->prepare("
         SELECT
             id,
             full_name,
+            group_id,
             status
         FROM members
         WHERE id = ?
@@ -52,6 +52,9 @@ try {
     $check->execute([$id]);
 
     $member = $check->fetch(PDO::FETCH_ASSOC);
+
+
+
 
     if (!$member) {
 
@@ -65,9 +68,29 @@ try {
         exit;
     }
 
-    /*
-     * Check whether the member is already inactive.
-     */
+
+    if (currentRole() === "coordinator") {
+
+        requireMemberAccount();
+
+        $coordinatorGroupId = getCurrentUserGroupId($pdo);
+
+        if ((int) $member["group_id"] !== $coordinatorGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" =>
+                    "Access denied. You can only deactivate members in your assigned Mchezo group."
+            ]);
+
+            exit;
+        }
+    }
+
+
+
     if ($member["status"] === "inactive") {
 
         echo json_encode([
@@ -78,15 +101,13 @@ try {
         exit;
     }
 
-    /*
-     * Start transaction.
-     */
+
+
+
     $pdo->beginTransaction();
 
 
-    /*
-     * 1. Deactivate the member.
-     */
+
     $stmt = $pdo->prepare("
         UPDATE members
         SET status = 'inactive'
@@ -96,10 +117,8 @@ try {
     $stmt->execute([$id]);
 
 
-    /*
-     * 2. Deactivate any user account
-     *    linked to this member.
-     */
+   
+
     $stmt = $pdo->prepare("
         UPDATE users
         SET status = 'inactive'
@@ -112,15 +131,11 @@ try {
     $deactivatedUsers = $stmt->rowCount();
 
 
-    /*
-     * Commit both changes.
-     */
+
     $pdo->commit();
 
 
-    /*
-     * Audit: Member deactivated.
-     */
+
     logAudit(
         $_SESSION["user_id"],
         "Deactivate Member",
@@ -132,9 +147,8 @@ try {
     );
 
 
-    /*
-     * Audit: Linked user deactivated.
-     */
+
+
     if ($deactivatedUsers > 0) {
 
         logAudit(
@@ -149,6 +163,8 @@ try {
     }
 
 
+  
+
     echo json_encode([
         "success" => true,
         "message" => $deactivatedUsers > 0
@@ -158,9 +174,6 @@ try {
 
 } catch (PDOException $e) {
 
-    /*
-     * Roll back if something failed.
-     */
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }

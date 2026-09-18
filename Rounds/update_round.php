@@ -32,6 +32,8 @@ if (
     $status === ""
 ) {
 
+    http_response_code(400);
+
     echo json_encode([
         "success" => false,
         "message" => "Please fill in all required fields."
@@ -46,6 +48,8 @@ if (!in_array(
     true
 )) {
 
+    http_response_code(400);
+
     echo json_encode([
         "success" => false,
         "message" => "Invalid round status."
@@ -59,25 +63,27 @@ try {
     /*
      * Get the existing round
      */
-$check = $pdo->prepare(
-    "SELECT
-        r.group_id,
-        r.round_number AS old_round_number,
-        r.due_date AS old_due_date,
-        r.status AS old_status,
-        g.group_name
-     FROM rounds r
-     INNER JOIN mchezo_groups g
-        ON r.group_id = g.id
-     WHERE r.id = ?
-     LIMIT 1"
-);
+    $check = $pdo->prepare(
+        "SELECT
+            r.group_id,
+            r.round_number AS old_round_number,
+            r.due_date AS old_due_date,
+            r.status AS old_status,
+            g.group_name
+         FROM rounds r
+         INNER JOIN mchezo_groups g
+            ON r.group_id = g.id
+         WHERE r.id = ?
+         LIMIT 1"
+    );
 
     $check->execute([$id]);
 
-    $round = $check->fetch();
+    $round = $check->fetch(PDO::FETCH_ASSOC);
 
     if (!$round) {
+
+        http_response_code(404);
 
         echo json_encode([
             "success" => false,
@@ -87,13 +93,30 @@ $check = $pdo->prepare(
         exit;
     }
 
-    $groupId = $round["group_id"];
+    $groupId = (int) $round["group_id"];
 
 
-    /*
-     * Make sure the new round number
-     * does not exceed the group cycle.
-     */
+    if (currentRole() === "coordinator") {
+
+        requireMemberAccount();
+
+        $coordinatorGroupId = getCurrentUserGroupId($pdo);
+
+        if ($groupId !== $coordinatorGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" => "Access denied. You can only edit rounds in your own Mchezo group."
+            ]);
+
+            exit;
+        }
+    }
+
+
+
     $groupStmt = $pdo->prepare(
         "SELECT cycle_length
          FROM mchezo_groups
@@ -103,9 +126,11 @@ $check = $pdo->prepare(
 
     $groupStmt->execute([$groupId]);
 
-    $group = $groupStmt->fetch();
+    $group = $groupStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$group) {
+
+        http_response_code(404);
 
         echo json_encode([
             "success" => false,
@@ -173,14 +198,16 @@ $check = $pdo->prepare(
         $id
     ]);
 
+
+   
     logAudit(
-    $_SESSION["user_id"],
-    "Edit Round",
-    "Updated Round " . $roundNumber .
-    " for Mchezo group \"" . $round["group_name"] .
-    "\" (ID: " . $id . "). Status: " . $status .
-    ", due date: " . $dueDate . "."
-);
+        $_SESSION["user_id"],
+        "Edit Round",
+        "Updated Round " . $roundNumber .
+        " for Mchezo group \"" . $round["group_name"] .
+        "\" (ID: " . $id . "). Status: " . $status .
+        ", due date: " . $dueDate . "."
+    );
 
 
     echo json_encode([
@@ -189,6 +216,11 @@ $check = $pdo->prepare(
     ]);
 
 } catch (PDOException $e) {
+
+    error_log(
+        "Update round error: " .
+        $e->getMessage()
+    );
 
     http_response_code(500);
 

@@ -11,39 +11,89 @@ header("Content-Type: application/json");
 try {
 
     if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+
         http_response_code(405);
+
         echo json_encode([
             "success" => false,
             "message" => "Only POST requests are allowed."
         ]);
+
         exit;
     }
 
-    $group_id = intval($_POST["group_id"] ?? 0);
+    $group_id = (int) ($_POST["group_id"] ?? 0);
 
-$stmt = $pdo->prepare("
-    SELECT group_name
-    FROM mchezo_groups
-    WHERE id = ?
-    LIMIT 1
-");
+    if ($group_id <= 0) {
 
-$stmt->execute([$group_id]);
+        http_response_code(400);
 
-$group = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo json_encode([
+            "success" => false,
+            "message" => "Invalid Mchezo group."
+        ]);
 
-if (!$group) {
-    http_response_code(404);
-    echo json_encode([
-        "success" => false,
-        "message" => "Mchezo group not found."
-    ]);
-    exit;
-}
+        exit;
+    }
 
-    // Get active members
+
+
+    if (currentRole() === "coordinator") {
+
+        requireMemberAccount();
+
+        $coordinatorGroupId = getCurrentUserGroupId($pdo);
+
+        if ($group_id !== $coordinatorGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" => "Access denied. You can only generate rotation for your own Mchezo group."
+            ]);
+
+            exit;
+        }
+    }
+
+
+    /*
+     * Get Mchezo group
+     */
     $stmt = $pdo->prepare("
-        SELECT id, full_name
+        SELECT
+            id,
+            group_name
+        FROM mchezo_groups
+        WHERE id = ?
+        LIMIT 1
+    ");
+
+    $stmt->execute([$group_id]);
+
+    $group = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$group) {
+
+        http_response_code(404);
+
+        echo json_encode([
+            "success" => false,
+            "message" => "Mchezo group not found."
+        ]);
+
+        exit;
+    }
+
+
+    /*
+     * Get active members
+     */
+    $stmt = $pdo->prepare("
+        SELECT
+            id,
+            full_name
         FROM members
         WHERE group_id = ?
         AND status = 'active'
@@ -52,20 +102,28 @@ if (!$group) {
 
     $stmt->execute([$group_id]);
 
-    $members = $stmt->fetchAll();
+    $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (count($members) === 0) {
+
         http_response_code(400);
+
         echo json_encode([
             "success" => false,
             "message" => "No active members found in this group."
         ]);
+
         exit;
     }
 
-    // Get rounds for this group
+
+    /*
+     * Get rounds for this group
+     */
     $stmt = $pdo->prepare("
-        SELECT id, round_number
+        SELECT
+            id,
+            round_number
         FROM rounds
         WHERE group_id = ?
         ORDER BY round_number ASC
@@ -73,19 +131,27 @@ if (!$group) {
 
     $stmt->execute([$group_id]);
 
-    $rounds = $stmt->fetchAll();
+    $rounds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (count($rounds) === 0) {
+
         http_response_code(400);
+
         echo json_encode([
             "success" => false,
             "message" => "No rounds found for this group."
         ]);
+
         exit;
     }
 
-    // Make sure number of rounds matches number of members
+
+    /*
+     * Make sure number of rounds
+     * matches number of active members.
+     */
     if (count($rounds) !== count($members)) {
+
         http_response_code(400);
 
         echo json_encode([
@@ -98,7 +164,10 @@ if (!$group) {
         exit;
     }
 
-    // Check whether turns already exist
+
+    /*
+     * Check whether turns already exist
+     */
     $stmt = $pdo->prepare("
         SELECT COUNT(*)
         FROM turns t
@@ -109,9 +178,10 @@ if (!$group) {
 
     $stmt->execute([$group_id]);
 
-    $existingTurns = $stmt->fetchColumn();
+    $existingTurns = (int) $stmt->fetchColumn();
 
     if ($existingTurns > 0) {
+
         http_response_code(400);
 
         echo json_encode([
@@ -122,44 +192,63 @@ if (!$group) {
         exit;
     }
 
-    // Start transaction
+
+    /*
+     * Start transaction
+     */
     $pdo->beginTransaction();
 
-    $insert = $pdo->prepare("
-        INSERT INTO turns
-        (
-            round_id,
-            member_id,
-            turn_number,
-            status
-        )
-        VALUES (?, ?, ?, 'upcoming')
-    ");
+    try {
 
-    foreach ($rounds as $index => $round) {
+        $insert = $pdo->prepare("
+            INSERT INTO turns
+            (
+                round_id,
+                member_id,
+                turn_number,
+                status
+            )
+            VALUES (?, ?, ?, 'upcoming')
+        ");
 
-        $member = $members[$index];
+        foreach ($rounds as $index => $round) {
 
-        $turnNumber = $index + 1;
+            $member = $members[$index];
 
-        $insert->execute([
-            $round["id"],
-            $member["id"],
-            $turnNumber
-        ]);
+            $turnNumber = $index + 1;
+
+            $insert->execute([
+                $round["id"],
+                $member["id"],
+                $turnNumber
+            ]);
+        }
+
+        $pdo->commit();
+
+    } catch (PDOException $e) {
+
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $e;
     }
 
-$pdo->commit();
 
-logAudit(
-    $_SESSION["user_id"],
-    "Generate Turns",
-    "Generated " . count($rounds) .
-    " rotation turn(s) for Mchezo group \"" .
-    $group["group_name"] . "\"."
-);
+    /*
+     * Audit log
+     */
+    logAudit(
+        $_SESSION["user_id"],
+        "Generate Turns",
+        "Generated " . count($rounds) .
+        " rotation turn(s) for Mchezo group \"" .
+        $group["group_name"] . "\"."
+    );
 
-echo json_encode([
+
+    echo json_encode([
         "success" => true,
         "message" => "Rotation generated successfully.",
         "turns_created" => count($rounds)
@@ -167,9 +256,10 @@ echo json_encode([
 
 } catch (PDOException $e) {
 
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
+    error_log(
+        "Generate turns error: " .
+        $e->getMessage()
+    );
 
     http_response_code(500);
 

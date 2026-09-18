@@ -52,6 +52,7 @@ $permissions = [
 
 $userPermissions = $permissions[$role] ?? ["dashboard"];
 
+
 function canAccess($page)
 {
     global $userPermissions;
@@ -249,7 +250,9 @@ $initials = strtoupper(
   </div>
 <script>
     window.currentUserId = <?= (int) $_SESSION["user_id"] ?>;
+    window.currentUserRole = <?= json_encode($role) ?>;
 </script>
+
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -36,13 +36,12 @@ if ($id <= 0) {
 
 try {
 
-    /*
-     * Get member
-     */
+
     $check = $pdo->prepare("
         SELECT
             id,
             full_name,
+            group_id,
             status
         FROM members
         WHERE id = ?
@@ -65,6 +64,26 @@ try {
         exit;
     }
 
+ 
+    if (currentRole() === "coordinator") {
+
+        requireMemberAccount();
+
+        $coordinatorGroupId = getCurrentUserGroupId($pdo);
+
+        if ((int) $member["group_id"] !== $coordinatorGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" => "Access denied. You can only manage members in your own Mchezo group."
+            ]);
+
+            exit;
+        }
+    }
+
     /*
      * Check if already active
      */
@@ -78,9 +97,7 @@ try {
         exit;
     }
 
-    /*
-     * Reactivate member
-     */
+
     $stmt = $pdo->prepare("
         UPDATE members
         SET status = 'active'
@@ -89,9 +106,7 @@ try {
 
     $stmt->execute([$id]);
 
-    /*
-     * Audit log
-     */
+  
     logAudit(
         $_SESSION["user_id"],
         "Reactivate Member",

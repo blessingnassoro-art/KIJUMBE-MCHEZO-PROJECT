@@ -3,23 +3,27 @@
 require_once "../includes/auth.php";
 require_once "../includes/db.php";
 
-requireLogin();
+requireRole(["admin", "coordinator"]);
 
 header("Content-Type: application/json");
 
-$meetingId = $_GET["meeting_id"] ?? null;
+$meetingId = (int) ($_GET["meeting_id"] ?? 0);
 
-if (!$meetingId) {
+if ($meetingId <= 0) {
+
+    http_response_code(400);
+
     echo json_encode([
         "success" => false,
         "message" => "Meeting ID is required."
     ]);
+
     exit;
 }
 
 try {
 
-    // Get meeting and its Mchezo group
+  
     $stmt = $pdo->prepare("
         SELECT
             m.id,
@@ -39,16 +43,40 @@ try {
     $meeting = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$meeting) {
+
+        http_response_code(404);
+
         echo json_encode([
             "success" => false,
             "message" => "Meeting not found."
         ]);
+
         exit;
     }
 
 
-    // Get ALL members belonging to the meeting's Mchezo group
-    // Existing attendance is loaded if already recorded.
+
+    if (currentRole() === "coordinator") {
+
+        requireMemberAccount();
+
+        $coordinatorGroupId = getCurrentUserGroupId($pdo);
+
+        if ((int) $meeting["group_id"] !== $coordinatorGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" => "Access denied. You can only view attendance for your own Mchezo group."
+            ]);
+
+            exit;
+        }
+    }
+
+
+
     $stmt = $pdo->prepare("
         SELECT
             m.id AS member_id,
@@ -56,15 +84,11 @@ try {
             m.phone,
             a.status,
             a.remarks
-
         FROM members m
-
         LEFT JOIN attendance a
             ON a.member_id = m.id
             AND a.meeting_id = ?
-
         WHERE m.group_id = ?
-
         ORDER BY m.full_name ASC
     ");
 
@@ -83,6 +107,11 @@ try {
     ]);
 
 } catch (PDOException $e) {
+
+    error_log(
+        "Get attendance error: " .
+        $e->getMessage()
+    );
 
     http_response_code(500);
 

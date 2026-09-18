@@ -30,6 +30,8 @@ if (
     $dueDate === ""
 ) {
 
+    http_response_code(400);
+
     echo json_encode([
         "success" => false,
         "message" => "Please fill in all required fields."
@@ -40,24 +42,47 @@ if (
 
 try {
 
+
+    if (currentRole() === "coordinator") {
+
+        requireMemberAccount();
+
+        $coordinatorGroupId = getCurrentUserGroupId($pdo);
+
+        if ($groupId !== $coordinatorGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" => "Access denied. You can only create rounds for your own Mchezo group."
+            ]);
+
+            exit;
+        }
+    }
+
+
     /*
      * Get Mchezo group information
      */
-$groupStmt = $pdo->prepare(
-    "SELECT
-        group_name,
-        contribution_amount,
-        cycle_length
-     FROM mchezo_groups
-     WHERE id = ?
-     LIMIT 1"
-);
+    $groupStmt = $pdo->prepare(
+        "SELECT
+            group_name,
+            contribution_amount,
+            cycle_length
+         FROM mchezo_groups
+         WHERE id = ?
+         LIMIT 1"
+    );
 
     $groupStmt->execute([$groupId]);
 
-    $group = $groupStmt->fetch();
+    $group = $groupStmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$group) {
+
+        http_response_code(404);
 
         echo json_encode([
             "success" => false,
@@ -68,10 +93,7 @@ $groupStmt = $pdo->prepare(
     }
 
 
-    /*
-     * Check that round number does not exceed
-     * the group's cycle length.
-     */
+
     if ($roundNumber > (int) $group["cycle_length"]) {
 
         echo json_encode([
@@ -122,7 +144,7 @@ $groupStmt = $pdo->prepare(
 
     $memberStmt->execute([$groupId]);
 
-    $memberData = $memberStmt->fetch();
+    $memberData = $memberStmt->fetch(PDO::FETCH_ASSOC);
 
     $totalMembers = (int) $memberData["total_members"];
 
@@ -171,14 +193,19 @@ $groupStmt = $pdo->prepare(
         $expectedAmount
     ]);
 
-logAudit(
-    $_SESSION["user_id"],
-    "Add Round",
-    "Created Round " . $roundNumber .
-    " for Mchezo group \"" . $group["group_name"] .
-    "\" with expected amount " . $expectedAmount .
-    " and due date " . $dueDate . "."
+
+    /*
+     * Audit log
+     */
+    logAudit(
+        $_SESSION["user_id"],
+        "Add Round",
+        "Created Round " . $roundNumber .
+        " for Mchezo group \"" . $group["group_name"] .
+        "\" with expected amount " . $expectedAmount .
+        " and due date " . $dueDate . "."
     );
+
 
     echo json_encode([
         "success" => true,
@@ -186,6 +213,11 @@ logAudit(
     ]);
 
 } catch (PDOException $e) {
+
+    error_log(
+        "Add round error: " .
+        $e->getMessage()
+    );
 
     http_response_code(500);
 

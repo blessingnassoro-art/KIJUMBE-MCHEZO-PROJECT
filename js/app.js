@@ -147,7 +147,7 @@ async function dashboard() {
         <div class="hero">
 
             <h3>
-                Good morning, ${currentUser.name} 👋
+                Welcome, ${currentUser.name} 
             </h3>
 
             <p>
@@ -1072,66 +1072,100 @@ async function loadMchezoGroups() {
 }
 
 
-
 async function loadRoundGroups() {
+
+    const groupSelect =
+        document.getElementById("roundGroupId");
+
+    if (!groupSelect) {
+        return;
+    }
 
     try {
 
-        const response = await fetch("Mchezo/get_groups.php");
+        const response =
+            await fetch("Mchezo/get_groups.php");
+
+        const data =
+            await response.json();
 
         if (!response.ok) {
-            throw new Error("Failed to load groups");
+
+            throw new Error(
+                data.message || "Failed to load groups"
+            );
         }
 
-        const groups = await response.json();
+        /*
+         * get_groups.php currently returns
+         * an array of groups.
+         */
+        const groups =
+            Array.isArray(data)
+                ? data
+                : (data.groups || []);
 
-        const groupSelect =
-            document.getElementById("roundGroupId");
+
+        /*
+         * Show only active groups.
+         *
+         * The backend already ensures that
+         * Coordinator receives only their own group.
+         */
+        const activeGroups =
+            groups.filter(
+                group => group.status === "active"
+            );
+
+
+        if (activeGroups.length === 0) {
+
+            groupSelect.innerHTML = `
+                <option value="">
+                    No active Mchezo groups available
+                </option>
+            `;
+
+            return;
+        }
+
 
         groupSelect.innerHTML = `
             <option value="">
                 Select Mchezo Group
             </option>
 
-            ${groups
-                .filter(group => group.status === "active")
-                .map(group => `
-                    <option value="${group.id}">
-                        ${group.group_name}
-                    </option>
-                `)
-                .join("")
-            }
+            ${activeGroups.map(group => `
+                <option value="${group.id}">
+                    ${escapeHtml(group.group_name)}
+                </option>
+            `).join("")}
         `;
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Load round groups error:",
+            error
+        );
 
-        const groupSelect =
-            document.getElementById("roundGroupId");
-
-        if (groupSelect) {
-
-            groupSelect.innerHTML = `
-                <option value="">
-                    Failed to load groups
-                </option>
-            `;
-        }
+        groupSelect.innerHTML = `
+            <option value="">
+                Failed to load groups
+            </option>
+        `;
     }
 }
+
 async function loadMeetingGroups() {
-
     try {
-
         const response = await fetch("Mchezo/get_groups.php");
 
         if (!response.ok) {
             throw new Error("Failed to load Mchezo groups");
         }
 
-        const groups = await response.json();
+        const result = await response.json();
 
         const select = document.getElementById("meetingGroupId");
 
@@ -1139,18 +1173,21 @@ async function loadMeetingGroups() {
             return;
         }
 
+        // Support both:
+        // 1. Direct array: [...]
+        // 2. Object: { success: true, groups: [...] }
+        const groups = Array.isArray(result)
+            ? result
+            : (Array.isArray(result.groups) ? result.groups : []);
 
-        if (!groups || groups.length === 0) {
-
+        if (groups.length === 0) {
             select.innerHTML = `
                 <option value="">
                     No Mchezo groups available
                 </option>
             `;
-
             return;
         }
-
 
         select.innerHTML = `
             <option value="">
@@ -1165,21 +1202,17 @@ async function loadMeetingGroups() {
         `;
 
     } catch (error) {
-
-        console.error(error);
+        console.error("Error loading meeting groups:", error);
 
         const select = document.getElementById("meetingGroupId");
 
         if (select) {
-
             select.innerHTML = `
                 <option value="">
                     Failed to load groups
                 </option>
             `;
-
         }
-
     }
 }
 
@@ -1292,7 +1325,6 @@ async function saveMeeting() {
     }
 }
 
-
 async function saveRound() {
 
     const groupId =
@@ -1357,7 +1389,6 @@ async function saveRound() {
 
     }
 }
-
 
 function renderMchezoGroups() {
 
@@ -1527,8 +1558,6 @@ async function viewMchezoMembers(groupId) {
     }
 }
 
-
-
 function renderMchezoMembers(members) {
 
     const groupName =
@@ -1641,16 +1670,13 @@ function renderMchezoMembers(members) {
         </div>
     `;
 }
+
 function editMchezoGroup(index) {
 
     const group = state.mchezoGroups[index];
 
     openEditMchezoGroupModal(group);
 }
-
-
-
-
 
 function openEditMchezoGroupModal(group) {
 
@@ -1819,12 +1845,6 @@ function openEditMchezoGroupModal(group) {
 }
 
 
-
-
-
-
-
-
 async function updateMchezoGroup(id) {
 
     const groupName =
@@ -1947,10 +1967,6 @@ if (Number(maxMembers) < 1) {
 }
 
 
-
-
-
-
 function rounds() {
 
     content.innerHTML = `
@@ -1993,122 +2009,122 @@ async function loadRounds() {
 
 function renderRounds(rounds) {
 
-window.roundsData = rounds;
+    window.roundsData = rounds;
 
     content.innerHTML = `
-<div class="card">
+        <div class="card">
 
-    <div class="section-head">
+            <div class="section-head">
 
-        <div>
-            <h3>Contribution Rounds</h3>
+                <div>
+                    <h3>Contribution Rounds</h3>
 
-            <p>
-                ${rounds.length}
-                rounds currently displayed
-            </p>
-        </div>
+                    <p>
+                        ${rounds.length}
+                        rounds currently displayed
+                    </p>
+                </div>
 
-        <button
-            class="btn btn-primary"
-            onclick="openModal('Create Round')"
-        >
-            ＋ New Round
-        </button>
-
-    </div>
-
-<div class="table-wrap">
-
-<table class="table">
-
-<thead>
-<tr>
-    <th>Group</th>
-    <th>Round</th>
-    <th>Due Date</th>
-    <th>Expected</th>
-    <th>Collected</th>
-    <th>Status</th>
-    <th>Action</th>
-</tr>
-</thead>
-
-<tbody>
-
-${
-    rounds.length === 0
-
-    ?
-
-    `
-    <tr>
-        <td colspan="6" style="text-align:center;">
-            No rounds found.
-        </td>
-    </tr>
-    `
-
-    :
-
-    rounds.map(round => `
-
-        <tr>
-
-            <td>
-                <strong>
-                    ${round.group_name}
-                </strong>
-            </td>
-
-            <td>
-                Round ${round.round_number}
-            </td>
-
-            <td>
-                ${round.due_date}
-            </td>
-
-            <td class="amount">
-                ${money(round.expected_amount)}
-            </td>
-
-            <td class="amount">
-                ${money(round.collected_amount)}
-            </td>
-
-            <td>
-                ${badge(
-                    round.status === "upcoming"
-                        ? "Upcoming"
-                        : round.status === "active"
-                            ? "Active"
-                            : "Completed"
-                )}
-            </td>
-
-            <td>
                 <button
-                        class="btn btn-light"
-                        onclick="editRound(${round.id})"
-                    >
-                          Edit
+                    class="btn btn-primary"
+                    onclick="openModal('Create Round')"
+                >
+                    ＋ New Round
                 </button>
-    </td>
 
-        </tr>
+            </div>
 
-            `).join("")
-        }
+            <div class="table-wrap">
 
-    </tbody>
+                <table class="table">
 
-</table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>Round</th>
+                            <th>Due Date</th>
+                            <th>Expected</th>
+                            <th>Collected</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
 
-</div>
+                    <tbody>
 
-</div>
-`;
+                        ${
+                            rounds.length === 0
+
+                            ?
+
+                            `
+                            <tr>
+                                <td colspan="7" style="text-align:center;">
+                                    No rounds found.
+                                </td>
+                            </tr>
+                            `
+
+                            :
+
+                            rounds.map(round => `
+
+                                <tr>
+
+                                    <td>
+                                        <strong>
+                                            ${round.group_name}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        Round ${round.round_number}
+                                    </td>
+
+                                    <td>
+                                        ${round.due_date}
+                                    </td>
+
+                                    <td class="amount">
+                                        ${money(round.expected_amount)}
+                                    </td>
+
+                                    <td class="amount">
+                                        ${money(round.collected_amount)}
+                                    </td>
+
+                                    <td>
+                                        ${badge(
+                                            round.status === "upcoming"
+                                                ? "Upcoming"
+                                                : round.status === "active"
+                                                    ? "Active"
+                                                    : "Completed"
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        <button
+                                            class="btn btn-light"
+                                            onclick="editRound(${round.id})"
+                                        >
+                                            Edit
+                                        </button>
+                                    </td>
+
+                                </tr>
+
+                            `).join("")
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    `;
 }
 
 
@@ -2317,11 +2333,13 @@ function contributions() {
                     <p>Track member contributions and payments.</p>
                 </div>
 
-                <button
-                    class="btn"
-                    onclick="openGenerateContributionModal()">
-                    Generate Contributions
-                </button>
+${window.currentUserRole === "admin" ? `
+    <button
+        class="btn btn-primary"
+        onclick="openGenerateContributionModal()">
+        ＋ Generate Contributions
+    </button>
+` : ""}
 
             </div>
 
@@ -2335,13 +2353,74 @@ function contributions() {
     loadContributions();
 }
 
-async function openGenerateContributionModal() {
+async function loadContributions() {
 
     try {
 
         const response = await fetch(
-            "Rounds/get_rounds.php"
+            "Contributions/get_contributions.php"
         );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.message ||
+                "Failed to load contributions."
+            );
+        }
+
+        // Current PHP endpoint returns a direct array
+        const contributions = Array.isArray(data)
+            ? data
+            : (data.contributions || []);
+
+        renderContributions(contributions);
+
+    } catch (error) {
+
+        console.error(
+            "Contribution loading error:",
+            error
+        );
+
+        const container =
+            document.getElementById(
+                "contributionsContent"
+            );
+
+        if (container) {
+
+            container.innerHTML = `
+                <div class="alert">
+                    ${escapeHtml(
+                        error.message ||
+                        "Failed to load contributions."
+                    )}
+                </div>
+            `;
+        }
+
+        toast(
+            error.message ||
+            "Failed to load contributions."
+        );
+    }
+}
+async function openGenerateContributionModal() {
+
+  if (
+    window.currentUserRole !== "admin" &&
+    window.currentUserRole !== "treasurer"
+) {
+    alert("Access denied. Only Admin or Treasurer can generate contributions.");
+    return;
+}
+
+    try {
+
+        const response = await fetch("Rounds/get_rounds.php");
 
         const rounds = await response.json();
 
@@ -2351,7 +2430,7 @@ async function openGenerateContributionModal() {
             );
         }
 
-        if (!rounds || rounds.length === 0) {
+        if (!Array.isArray(rounds) || rounds.length === 0) {
             alert("No rounds are available.");
             return;
         }
@@ -2374,7 +2453,7 @@ async function openGenerateContributionModal() {
 
                         ${rounds.map(round => `
                             <option value="${round.id}">
-                                ${round.group_name}
+                                ${escapeHtml(round.group_name)}
                                 - Round ${round.round_number}
                                 - Due ${round.due_date}
                             </option>
@@ -2403,8 +2482,6 @@ async function openGenerateContributionModal() {
             </form>
         `;
 
-        // IMPORTANT:
-        // Your modal uses the "hidden" class
         document
             .getElementById("modal")
             .classList.remove("hidden");
@@ -2424,21 +2501,23 @@ async function openGenerateContributionModal() {
     }
 }
 
-
-
 async function generateContributions(event) {
 
     event.preventDefault();
 
+if (
+    window.currentUserRole !== "admin" &&
+    window.currentUserRole !== "treasurer"
+) {
+    alert("Access denied. Only Admin or Treasurer can generate contributions.");
+    return;
+}
+
     const roundId =
-        document.getElementById(
-            "contributionRound"
-        ).value;
+        document.getElementById("contributionRound").value;
 
     if (!roundId) {
-
         alert("Please select a round.");
-
         return;
     }
 
@@ -2446,10 +2525,7 @@ async function generateContributions(event) {
 
         const formData = new FormData();
 
-        formData.append(
-            "round_id",
-            roundId
-        );
+        formData.append("round_id", roundId);
 
         const response = await fetch(
             "Contributions/generate_contributions.php",
@@ -2462,7 +2538,6 @@ async function generateContributions(event) {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-
             throw new Error(
                 data.message ||
                 "Failed to generate contributions."
@@ -2471,45 +2546,105 @@ async function generateContributions(event) {
 
         alert(data.message);
 
-        document.getElementById("modal").classList.add("hidden");
+        document
+            .getElementById("modal")
+            .classList.add("hidden");
 
         loadContributions();
 
     } catch (error) {
 
         alert(error.message);
-
         console.error(error);
+
     }
 }
 
-async function loadContributions() {
+async function loadContributionReport() {
 
     try {
 
         const response = await fetch(
-            "Contributions/get_contributions.php"
+            "Reports/get_contribution_report.php"
         );
 
-        if (!response.ok) {
-            throw new Error("Failed to load contributions");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.message ||
+                "Failed to load contribution report."
+            );
         }
 
-        const contributions = await response.json();
+        renderContributionSummary(
+            data.summary
+        );
 
-        renderContributions(contributions);
+        renderContributionTable(
+            data.contributions || []
+        );
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Contribution report error:",
+            error
+        );
 
-        content.innerHTML = `
-            <div class="card">
-                <p style="color:red;">
-                    Failed to load contributions from database.
-                </p>
-            </div>
-        `;
+        toast(
+            error.message ||
+            "Failed to load contribution report."
+        );
+    }
+}
+
+function renderContributionSummary(summary) {
+
+    const totalExpected =
+        Number(summary.total_expected || 0);
+
+    const totalPaid =
+        Number(summary.total_paid || 0);
+
+    const outstanding =
+        Number(summary.outstanding || 0);
+
+
+    const expectedElement =
+        document.getElementById(
+            "contributionTotalExpected"
+        );
+
+    if (expectedElement) {
+
+        expectedElement.innerHTML =
+            money(totalExpected);
+    }
+
+
+    const paidElement =
+        document.getElementById(
+            "contributionTotalPaid"
+        );
+
+    if (paidElement) {
+
+        paidElement.innerHTML =
+            money(totalPaid);
+    }
+
+
+    const outstandingElement =
+        document.getElementById(
+            "contributionOutstanding"
+        );
+
+    if (outstandingElement) {
+
+        outstandingElement.innerHTML =
+            money(outstanding);
     }
 }
 
@@ -2532,7 +2667,6 @@ function renderContributions(contributions) {
         container.innerHTML = `
             <div class="alert">
                 No contribution records found.
-                Generate contributions for a round first.
             </div>
         `;
 
@@ -2553,6 +2687,12 @@ function renderContributions(contributions) {
 
     const remaining =
         totalExpected - totalPaid;
+
+
+    /*
+     * Determine the logged-in user's role
+     */
+    const role = window.currentUserRole;
 
 
     container.innerHTML = `
@@ -2608,112 +2748,313 @@ function renderContributions(contributions) {
             </div>
 
 
-<div class="table-wrap">
+            <div class="table-wrap">
 
-<table class="table">
+                <table class="table">
 
-<thead>
+                    <thead>
 
-<tr>
-    <th>Member</th>
-    <th>Group</th>
-    <th>Round</th>
-    <th>Expected</th>
-    <th>Paid</th>
-    <th>Due Date</th>
-    <th>Status</th>
-    <th>Action</th>
-</tr>
+                        <tr>
+                            <th>Member</th>
+                            <th>Group</th>
+                            <th>Round</th>
+                            <th>Expected</th>
+                            <th>Paid</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
 
-</thead>
+                    </thead>
 
 
-<tbody>
+                    <tbody>
 
-${contributions.map(c => `
+                        ${contributions.map(c => {
 
-    <tr>
+                            const expected =
+                                Number(c.expected_amount);
 
-        <td>
+                            const paid =
+                                Number(c.paid_amount);
 
-            <div class="member-cell">
+                            const balance =
+                                Math.max(expected - paid, 0);
 
-                <div class="avatar">
-                    ${avatar(c.full_name)}
-                </div>
+                            const isPaid =
+                                c.status === "paid" ||
+                                balance <= 0;
 
-                <strong>
-                    ${c.full_name}
-                </strong>
+                            let actionButton = "";
+
+
+                            /*
+                             * MEMBER ACTIONS
+                             */
+                            if (role === "member") {
+
+                                if (!isPaid) {
+
+                                    actionButton = `
+                                        <button
+                                            class="btn btn-primary"
+                                            onclick="payContribution(${c.id})">
+
+                                            ${
+                                                paid > 0
+                                                    ? "Pay Remaining"
+                                                    : "Pay Contribution"
+                                            }
+
+                                        </button>
+                                    `;
+
+                                } else {
+
+                                    actionButton = `
+                                        <button
+                                            class="btn btn-light"
+                                            onclick="goToPayments(${c.id})">
+
+                                            View Payments
+
+                                        </button>
+                                    `;
+                                }
+
+                            }
+
+
+                            /*
+                             * ADMIN ACTIONS
+                             */
+                            else if (role === "admin") {
+
+                                actionButton = `
+                                    <button
+                                        class="btn btn-light"
+                                        onclick="goToPayments(${c.id})">
+
+                                        View Payments
+
+                                    </button>
+                                `;
+
+                            }
+
+
+                            /*
+                             * TREASURER ACTIONS
+                             */
+                            else if (role === "treasurer") {
+
+                                actionButton = `
+                                    <button
+                                        class="btn btn-light"
+                                        onclick="goToPayments(${c.id})">
+
+                                        View Payments
+
+                                    </button>
+                                `;
+
+                            }
+
+
+                            return `
+
+                                <tr>
+
+                                    <td>
+
+                                        <div class="member-cell">
+
+                                            <div class="avatar">
+                                                ${avatar(c.full_name)}
+                                            </div>
+
+                                            <strong>
+                                                ${escapeHtml(c.full_name)}
+                                            </strong>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+                                        ${escapeHtml(c.group_name)}
+                                    </td>
+
+
+                                    <td>
+                                        Round ${c.round_number}
+                                    </td>
+
+
+                                    <td class="amount">
+                                        ${money(expected)}
+                                    </td>
+
+
+                                    <td class="amount">
+                                        ${money(paid)}
+                                    </td>
+
+
+                                    <td>
+                                        ${c.due_date}
+                                    </td>
+
+
+                                    <td>
+
+                                        ${badge(
+                                            c.status === "paid"
+                                                ? "Paid"
+                                                : c.status === "partial"
+                                                    ? "Partial"
+                                                    : c.status === "overdue"
+                                                        ? "Overdue"
+                                                        : "Pending"
+                                        )}
+
+                                    </td>
+
+
+                                    <td>
+                                        ${actionButton}
+                                    </td>
+
+                                </tr>
+
+                            `;
+
+                        }).join("")}
+
+                    </tbody>
+
+                </table>
 
             </div>
 
-        </td>
+        </div>
 
-
-        <td>
-            ${c.group_name}
-        </td>
-
-
-        <td>
-            Round ${c.round_number}
-        </td>
-
-
-        <td class="amount">
-            ${money(c.expected_amount)}
-        </td>
-
-
-        <td class="amount">
-            ${money(c.paid_amount)}
-        </td>
-
-
-        <td>
-            ${c.due_date}
-        </td>
-
-
-        <td>
-
-            ${badge(
-                c.status === "paid"
-                    ? "Paid"
-                    : c.status === "partial"
-                        ? "Partial"
-                        : c.status === "overdue"
-                            ? "Overdue"
-                            : "Pending"
-            )}
-
-        </td>
-
-
-     <td>
-        <button
-            class="btn btn-light"
-            onclick="goToPayments(${c.id})">
-            View Payments
-        </button>
-</td>
-
-    </tr>
-
-`).join("")}
-
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-`;
+    `;
 }
 
+function renderContributionTable(contributions) {
+
+    const container =
+        document.getElementById(
+            "contributionReportTable"
+        );
+
+    if (!container) return;
+
+
+    if (contributions.length === 0) {
+
+        container.innerHTML = `
+            <div class="empty-state">
+
+                <h3>No contribution records</h3>
+
+                <p>
+                    Contribution records will appear
+                    when contributions are generated.
+                </p>
+
+            </div>
+        `;
+
+        return;
+    }
+
+
+    container.innerHTML = `
+
+        <div class="table-wrap">
+
+            <table class="table">
+
+                <thead>
+
+                    <tr>
+                        <th>Member</th>
+                        <th>Group</th>
+                        <th>Round</th>
+                        <th>Expected</th>
+                        <th>Paid</th>
+                        <th>Status</th>
+                        <th>Due Date</th>
+                        <th>Paid Date</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    ${contributions.map(c => `
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    ${escapeHtml(c.full_name)}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${escapeHtml(c.group_name)}
+                            </td>
+
+                            <td>
+                                Round ${c.round_number}
+                            </td>
+
+                            <td>
+                                ${money(
+                                    Number(c.expected_amount || 0)
+                                )}
+                            </td>
+
+                            <td>
+                                ${money(
+                                    Number(c.paid_amount || 0)
+                                )}
+                            </td>
+
+                            <td>
+                                ${badge(
+                                    c.status
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    c.due_date || "-"
+                                )}
+                            </td>
+
+                            <td>
+                                ${escapeHtml(
+                                    c.paid_date || "-"
+                                )}
+                            </td>
+
+                        </tr>
+
+                    `).join("")}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    `;
+}
 function goToPayments(contributionId) {
 
     window.selectedContributionId = contributionId;
@@ -2722,6 +3063,258 @@ function goToPayments(contributionId) {
 
 }
 
+function payContribution(contributionId) {
+
+    const contribution =
+        window.contributionsData.find(
+            c => Number(c.id) === Number(contributionId)
+        );
+
+    if (!contribution) {
+        alert("Contribution not found.");
+        return;
+    }
+
+    const expected =
+        Number(contribution.expected_amount);
+
+    const paid =
+        Number(contribution.paid_amount);
+
+    const remaining =
+        Math.max(expected - paid, 0);
+
+    if (remaining <= 0) {
+        alert("This contribution is already fully paid.");
+        return;
+    }
+
+    modalTitle.textContent = "Pay Contribution";
+
+    modalBody.innerHTML = `
+
+        <div class="field">
+
+            <label>Member</label>
+
+            <input
+                type="text"
+                value="${escapeHtml(contribution.full_name)}"
+                disabled>
+
+        </div>
+
+
+        <div class="field">
+
+            <label>Contribution</label>
+
+            <input
+                type="text"
+                value="Round ${contribution.round_number}"
+                disabled>
+
+        </div>
+
+
+        <div class="field">
+
+            <label>Remaining Amount</label>
+
+            <input
+                type="text"
+                value="${money(remaining)}"
+                disabled>
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="paymentAmount">
+                Payment Amount
+            </label>
+
+            <input
+                type="number"
+                id="paymentAmount"
+                min="1"
+                max="${remaining}"
+                value="${remaining}"
+                required>
+
+        </div>
+
+
+        <div class="field">
+
+            <label for="paymentMethod">
+                Payment Method
+            </label>
+
+            <select id="paymentMethod" required>
+
+                <option value="">
+                    Select payment method
+                </option>
+
+                <option value="cash">
+                    Cash
+                </option>
+
+                <option value="mobile_money">
+                    Mobile Money
+                </option>
+
+                <option value="bank">
+                    Bank
+                </option>
+
+                <option value="azampay">
+                    AzamPay
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="actions">
+
+            <button
+                type="button"
+                class="btn btn-light"
+                onclick="closeModal()">
+
+                Cancel
+
+            </button>
+
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                onclick="submitContributionPayment(${contribution.id})">
+
+                Continue
+
+            </button>
+
+        </div>
+
+    `;
+
+    document
+        .getElementById("modal")
+        .classList.remove("hidden");
+}
+async function submitContributionPayment(contributionId) {
+
+    const amountInput =
+        document.getElementById("paymentAmount");
+
+    const methodInput =
+        document.getElementById("paymentMethod");
+
+    if (!amountInput || !methodInput) {
+        alert("Payment form could not be found.");
+        return;
+    }
+
+    const amount = Number(amountInput.value);
+    const paymentMethod = methodInput.value;
+
+    if (!amount || amount <= 0) {
+        alert("Please enter a valid payment amount.");
+        return;
+    }
+
+    if (!paymentMethod) {
+        alert("Please select a payment method.");
+        return;
+    }
+
+    try {
+
+        const formData = new FormData();
+
+        formData.append(
+            "contribution_id",
+            contributionId
+        );
+
+        formData.append(
+            "amount",
+            amount
+        );
+
+        formData.append(
+            "payment_method",
+            paymentMethod
+        );
+
+        /*
+         * AzamPay has a separate payment flow.
+         * Do NOT send it to add_payment.php.
+         */
+        if (paymentMethod === "azampay") {
+
+            alert(
+                "AzamPay payment flow will be handled separately."
+            );
+
+            return;
+        }
+
+
+        /*
+         * Normal payment methods:
+         * cash / mobile_money / bank
+         */
+        const response = await fetch(
+            "Payments/add_payment.php",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.message ||
+                "Payment could not be recorded."
+            );
+        }
+
+        alert(
+            data.message ||
+            "Payment recorded successfully."
+        );
+
+        closeModal();
+
+        /*
+         * Reload contributions so the new
+         * paid amount and status are displayed.
+         */
+        await loadContributions();
+
+    } catch (error) {
+
+        console.error(
+            "Payment error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Payment failed."
+        );
+    }
+}
 function rotation() {
     content.innerHTML = `
         <div class="card">
@@ -2765,174 +3358,303 @@ function renderRotation(turns) {
 
         content.innerHTML = `
             <div class="card">
+
                 <h3>Rotation / Turns</h3>
+
                 <p>No rotation turns found.</p>
+
+                <div style="
+                    margin-top:15px;
+                    display:flex;
+                    gap:8px;
+                    align-items:center;
+                ">
+
+                    <select
+                        id="rotationGroupSelect"
+                        class="search"
+                    >
+                        <option value="">
+                            Select Mchezo Group
+                        </option>
+                    </select>
+
+                    <button
+                        id="generateRotationBtn"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        ＋ Generate Rotation
+                    </button>
+
+                </div>
+
             </div>
         `;
+
+        loadRotationGroups();
+
+        const generateButton =
+            document.getElementById("generateRotationBtn");
+
+        if (generateButton) {
+            generateButton.addEventListener(
+                "click",
+                generateRotation
+            );
+        }
 
         return;
     }
 
+
     window.rotationData = turns;
+
 
     content.innerHTML = `
         <div class="card">
 
-    <div class="card-header">
-        <div>
-            <h3>Rotation / Turns</h3>
-            <p>Manage the order of members receiving the Mchezo.</p>
-        </div>
+            <div class="card-header">
 
-        <div style="display:flex; gap:8px; align-items:center;">
-            <select id="rotationGroupSelect" class="search">
-                <option value="">Select Mchezo Group</option>
-            </select>
+                <div>
+                    <h3>Rotation / Turns</h3>
 
-            <button
-                id="generateRotationBtn"
-                class="btn btn-primary"
-                type="button">
-                ＋ Generate Rotation
-            </button>
-        </div>
-    </div>
+                    <p>
+                        Manage the order of members
+                        receiving the Mchezo.
+                    </p>
+                </div>
+
+                <div style="
+                    display:flex;
+                    gap:8px;
+                    align-items:center;
+                ">
+
+                    <select
+                        id="rotationGroupSelect"
+                        class="search"
+                    >
+                        <option value="">
+                            Select Mchezo Group
+                        </option>
+                    </select>
+
+                    <button
+                        id="generateRotationBtn"
+                        class="btn btn-primary"
+                        type="button"
+                    >
+                        ＋ Generate Rotation
+                    </button>
+
+                </div>
+
+            </div>
+
 
             <div class="rotation-table-wrapper">
 
-           <table class="rotation-table">
+                <table class="rotation-table">
 
-<thead>
-    <tr>
-        <th>Turn</th>
-        <th>Round</th>
-        <th>Member</th>
-        <th>Group</th>
-        <th>Status</th>
-        <th>Received Date</th>
-        <th>Action</th>
-    </tr>
-</thead>
+                    <thead>
 
-<tbody>
+                        <tr>
+                            <th>Turn</th>
+                            <th>Round</th>
+                            <th>Member</th>
+                            <th>Group</th>
+                            <th>Status</th>
+                            <th>Received Date</th>
+                            <th>Action</th>
+                        </tr>
 
-    ${turns.map(turn => `
+                    </thead>
 
-        <tr>
 
-            <td>
-                ${turn.turn_number}
-            </td>
+                    <tbody>
 
-            <td>
-                Round ${turn.round_number}
-            </td>
+                        ${turns.map(turn => `
 
-            <td class="member-name">
-                ${turn.full_name}
-            </td>
+                            <tr>
 
-            <td class="group-name">
-                ${turn.group_name}
-            </td>
+                                <td>
+                                    ${turn.turn_number}
+                                </td>
 
-            <td>
-                <span class="rotation-status ${turn.status}">
-                    ${turn.status}
-                </span>
-            </td>
+                                <td>
+                                    Round ${turn.round_number}
+                                </td>
 
-            <td>
-                ${turn.received_date || "-"}
-            </td>
+                                <td class="member-name">
+                                    ${escapeHtml(turn.full_name)}
+                                </td>
 
-            <td>
+                                <td class="group-name">
+                                    ${escapeHtml(turn.group_name)}
+                                </td>
 
-                ${
-                    turn.status === "upcoming"
+                                <td>
 
-                    ?
+                                    <span
+                                        class="rotation-status ${turn.status}"
+                                    >
+                                        ${turn.status}
+                                    </span>
 
-                    `
-                    <button
-                        class="rotation-action-btn start"
-                        onclick="changeTurnStatus(${turn.id}, 'current')">
-                        Start Turn
-                    </button>
-                    `
+                                </td>
 
-                    :
+                                <td>
+                                    ${turn.received_date || "-"}
+                                </td>
 
-                    turn.status === "current"
+                                <td>
 
-                    ?
+                                    ${
+                                        turn.status === "upcoming"
 
-                    `
-                    <button
-                        class="rotation-action-btn complete"
-                        onclick="changeTurnStatus(${turn.id}, 'completed')">
-                        Complete Turn
-                    </button>
-                    `
+                                        ?
 
-                    :
+                                        `
+                                        <button
+                                            class="rotation-action-btn start"
+                                            onclick="
+                                                changeTurnStatus(
+                                                    ${turn.id},
+                                                    'current'
+                                                )
+                                            "
+                                        >
+                                            Start Turn
+                                        </button>
+                                        `
 
-                    `
-                    <span class="rotation-completed">
-                        Completed
-                    </span>
-                    `
-                }
+                                        :
 
-            </td>
+                                        turn.status === "current"
 
-        </tr>
+                                        ?
 
-    `).join("")}
+                                        `
+                                        <button
+                                            class="rotation-action-btn complete"
+                                            onclick="
+                                                changeTurnStatus(
+                                                    ${turn.id},
+                                                    'completed'
+                                                )
+                                            "
+                                        >
+                                            Complete Turn
+                                        </button>
+                                        `
 
-</tbody>
+                                        :
 
-</table>
+                                        `
+                                        <span class="rotation-completed">
+                                            Completed
+                                        </span>
+                                        `
+                                    }
 
-</div>
+                                </td>
 
-</div>
-`;
+                            </tr>
 
-loadRotationGroups();
+                        `).join("")}
 
-const generateButton = document.getElementById("generateRotationBtn");
+                    </tbody>
 
-if (generateButton) {
-    generateButton.addEventListener("click", generateRotation);
-}
+                </table>
 
+            </div>
+
+        </div>
+    `;
+
+
+    /*
+     * Load groups allowed for the current user.
+     */
+    loadRotationGroups();
+
+
+    /*
+     * Connect Generate Rotation button.
+     */
+    const generateButton =
+        document.getElementById("generateRotationBtn");
+
+    if (generateButton) {
+
+        generateButton.addEventListener(
+            "click",
+            generateRotation
+        );
+    }
 }
 
 async function loadRotationGroups() {
 
-    const select = document.getElementById("rotationGroupSelect");
+    const select =
+        document.getElementById("rotationGroupSelect");
 
     if (!select) return;
 
     try {
 
-        const response = await fetch("Mchezo/get_groups.php");
+        const response =
+            await fetch("Mchezo/get_groups.php");
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         if (!response.ok) {
-            throw new Error("Failed to load Mchezo groups.");
+
+            throw new Error(
+                data.message ||
+                "Failed to load Mchezo groups."
+            );
         }
 
-        const groups = Array.isArray(data)
-            ? data
-            : data.groups || [];
+        const groups =
+            Array.isArray(data)
+                ? data
+                : (data.groups || []);
+
+
+        /*
+         * Only active groups should be available
+         * for generating a rotation.
+         *
+         * The backend already limits the groups
+         * according to the user's role.
+         */
+        const activeGroups =
+            groups.filter(
+                group => group.status === "active"
+            );
+
+
+        if (activeGroups.length === 0) {
+
+            select.innerHTML = `
+                <option value="">
+                    No active Mchezo groups available
+                </option>
+            `;
+
+            return;
+        }
+
 
         select.innerHTML = `
-            <option value="">Select Mchezo Group</option>
+            <option value="">
+                Select Mchezo Group
+            </option>
 
-            ${groups.map(group => `
+            ${activeGroups.map(group => `
                 <option value="${group.id}">
                     ${escapeHtml(group.group_name)}
                 </option>
@@ -2941,10 +3663,15 @@ async function loadRotationGroups() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Load rotation groups error:",
+            error
+        );
 
         select.innerHTML = `
-            <option value="">Failed to load groups</option>
+            <option value="">
+                Failed to load groups
+            </option>
         `;
     }
 }
@@ -6113,51 +6840,60 @@ function renderCollectionPerformance(rounds) {
                 : 0;
 
 
-        return `
+return `
 
-            <div
-                style="
-                    font-size:12px;
-                    margin-bottom:8px;
-                "
-            >
+    <div
+        style="
+            font-size:12px;
+            margin-bottom:8px;
+        "
+    >
 
-                <strong>
-                    ${escapeHtml(round.group_name)}
-                </strong>
+        <strong>
+            ${escapeHtml(round.group_name)}
+        </strong>
 
-                · Round ${round.round_number}
+        · Round ${round.round_number}
 
-                <span style="float:right">
-                    ${money(collected)}
-                    /
-                    ${money(expected)}
-                </span>
+        <span style="float:right">
+            ${money(collected)}
+            /
+            ${money(expected)}
+        </span>
 
-            </div>
+    </div>
 
 
-            <div class="progress">
+    <div class="progress">
 
-                <span
-                    style="
-                        width:${percentage}%;
-                    "
-                ></span>
+        <span
+            style="
+                width:${percentage}%;
+            "
+        ></span>
 
-            </div>
+    </div>
 
-            <div
-                style="
-                    font-size:11px;
-                    margin-top:4px;
-                    margin-bottom:15px;
-                "
-            >
-                ${percentage}% collected
-            </div>
 
-        `;
+    <div
+        style="
+            font-size:11px;
+            margin-top:4px;
+            margin-bottom:15px;
+        "
+    >
+
+        ${percentage}% collected
+
+        ·
+
+        <strong>
+            ${escapeHtml(round.status || "Unknown")}
+        </strong>
+
+    </div>
+
+`;
 
     }).join("");
 }
@@ -6705,7 +7441,6 @@ function printReport() {
     }, 300);
 
 }
-
 
 
 function settings() {
