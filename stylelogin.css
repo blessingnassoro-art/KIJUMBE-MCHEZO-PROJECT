@@ -51,7 +51,7 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    background: linear-gradient(180deg, rgba(238, 245, 243, 0.2), var(--page-bg) 58%), url('images/Stocks.jpg') center top / cover fixed;
+    background: linear-gradient(180deg, rgba(238, 245, 243, 0.2), var(--page-bg) 58%), url('Stocks.jpg') center top / cover fixed;
 }
 
 .hero-login {
