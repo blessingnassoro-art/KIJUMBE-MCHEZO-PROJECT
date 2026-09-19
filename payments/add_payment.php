@@ -397,13 +397,7 @@ try {
         $contribution_id
     ]);
 
-
-   
-
     $pdo->commit();
-
-
-
 
     logAudit(
 

@@ -4276,24 +4276,16 @@ async function openPaymentModal() {
 async function savePayment() {
 
     const contributionId =
-        document.getElementById(
-            "paymentContribution"
-        ).value;
+        document.getElementById("paymentContribution").value;
 
     const amount =
-        document.getElementById(
-            "paymentAmount"
-        ).value;
+        document.getElementById("paymentAmount").value;
 
     const paymentMethod =
-        document.getElementById(
-            "paymentMethod"
-        ).value;
+        document.getElementById("paymentMethod").value;
 
     const reference =
-        document.getElementById(
-            "paymentReference"
-        ).value.trim();
+        document.getElementById("paymentReference").value.trim();
 
 
     if (!contributionId) {
@@ -4363,7 +4355,12 @@ async function savePayment() {
 
         toast(result.message);
 
-        loadPayments();
+        // Refresh payment records
+        await loadPayments();
+
+        // Refresh contribution amounts/status
+        await loadContributions();
+
 
     } catch (error) {
 

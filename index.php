@@ -214,7 +214,7 @@ $initials = strtoupper(
             <small><?= htmlspecialchars(ucfirst($role)) ?></small>
           </div>
         </div>
-        <button id="logoutBtn" class="logout">↪ Logout</button>
+        <button id="logoutBtn" class="logout">Logout</button>
       </div>
     </aside>
 
