@@ -19,7 +19,9 @@ const pages={
     transactions:{title:"Transactions",sub:"Track the Mchezo financial ledger"},
     reports:{title:"Reports",sub:"View summaries and financial reports"},
     auditLogs: {title: "Audit Logs",sub: "Track important actions performed in KIJUMBE."},
+    profile: {title: "My Profile",sub: "View and update your personal account information."},
     settings:{title:"Settings",sub:"Configure KIJUMBE"}
+    
 };
 
 function initTheme() {
@@ -69,8 +71,8 @@ function updateThemeButton(theme) {
 
     button.innerHTML =
         theme === "dark"
-            ? "☀️ Light Mode"
-            : "🌙 Dark Mode";
+            ? " Light Mode"
+            : " Dark Mode";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1283,6 +1285,7 @@ async function loadMeetingGroups() {
         }
     }
 }
+
 
 async function saveMeeting() {
 
@@ -3422,6 +3425,16 @@ async function loadRotation() {
 
 function renderRotation(turns) {
 
+    const role = window.currentUserRole;
+
+    const canManageRotation =
+        role === "admin" ||
+        role === "coordinator";
+
+
+    /*
+     * Empty state
+     */
     if (!turns || turns.length === 0) {
 
         content.innerHTML = `
@@ -3431,45 +3444,60 @@ function renderRotation(turns) {
 
                 <p>No rotation turns found.</p>
 
-                <div style="
-                    margin-top:15px;
-                    display:flex;
-                    gap:8px;
-                    align-items:center;
-                ">
+                ${
+                    canManageRotation
+                    ? `
+                        <div style="
+                            margin-top:15px;
+                            display:flex;
+                            gap:8px;
+                            align-items:center;
+                        ">
 
-                    <select
-                        id="rotationGroupSelect"
-                        class="search"
-                    >
-                        <option value="">
-                            Select Mchezo Group
-                        </option>
-                    </select>
+                            <select
+                                id="rotationGroupSelect"
+                                class="search"
+                            >
+                                <option value="">
+                                    Select Mchezo Group
+                                </option>
+                            </select>
 
-                    <button
-                        id="generateRotationBtn"
-                        class="btn btn-primary"
-                        type="button"
-                    >
-                        ＋ Generate Rotation
-                    </button>
+                            <button
+                                id="generateRotationBtn"
+                                class="btn btn-primary"
+                                type="button"
+                            >
+                                ＋ Generate Rotation
+                            </button>
 
-                </div>
+                        </div>
+                    `
+                    : ""
+                }
 
             </div>
         `;
 
-        loadRotationGroups();
 
-        const generateButton =
-            document.getElementById("generateRotationBtn");
+        /*
+         * Only Admin and Coordinator need the group selector.
+         */
+        if (canManageRotation) {
 
-        if (generateButton) {
-            generateButton.addEventListener(
-                "click",
-                generateRotation
-            );
+            loadRotationGroups();
+
+            const generateButton =
+                document.getElementById("generateRotationBtn");
+
+            if (generateButton) {
+
+                generateButton.addEventListener(
+                    "click",
+                    generateRotation
+                );
+
+            }
         }
 
         return;
@@ -3493,30 +3521,37 @@ function renderRotation(turns) {
                     </p>
                 </div>
 
-                <div style="
-                    display:flex;
-                    gap:8px;
-                    align-items:center;
-                ">
 
-                    <select
-                        id="rotationGroupSelect"
-                        class="search"
-                    >
-                        <option value="">
-                            Select Mchezo Group
-                        </option>
-                    </select>
+                ${
+                    canManageRotation
+                    ? `
+                        <div style="
+                            display:flex;
+                            gap:8px;
+                            align-items:center;
+                        ">
 
-                    <button
-                        id="generateRotationBtn"
-                        class="btn btn-primary"
-                        type="button"
-                    >
-                        ＋ Generate Rotation
-                    </button>
+                            <select
+                                id="rotationGroupSelect"
+                                class="search"
+                            >
+                                <option value="">
+                                    Select Mchezo Group
+                                </option>
+                            </select>
 
-                </div>
+                            <button
+                                id="generateRotationBtn"
+                                class="btn btn-primary"
+                                type="button"
+                            >
+                                ＋ Generate Rotation
+                            </button>
+
+                        </div>
+                    `
+                    : ""
+                }
 
             </div>
 
@@ -3534,7 +3569,13 @@ function renderRotation(turns) {
                             <th>Group</th>
                             <th>Status</th>
                             <th>Received Date</th>
-                            <th>Action</th>
+
+                            ${
+                                canManageRotation
+                                ? `<th>Action</th>`
+                                : ""
+                            }
+
                         </tr>
 
                     </thead>
@@ -3576,57 +3617,64 @@ function renderRotation(turns) {
                                     ${turn.received_date || "-"}
                                 </td>
 
-                                <td>
 
-                                    ${
-                                        turn.status === "upcoming"
+                                ${
+                                    canManageRotation
+                                    ? `
+                                        <td>
 
-                                        ?
+                                            ${
+                                                turn.status === "upcoming"
 
-                                        `
-                                        <button
-                                            class="rotation-action-btn start"
-                                            onclick="
-                                                changeTurnStatus(
-                                                    ${turn.id},
-                                                    'current'
-                                                )
-                                            "
-                                        >
-                                            Start Turn
-                                        </button>
-                                        `
+                                                ?
 
-                                        :
+                                                `
+                                                <button
+                                                    class="rotation-action-btn start"
+                                                    onclick="
+                                                        changeTurnStatus(
+                                                            ${turn.id},
+                                                            'current'
+                                                        )
+                                                    "
+                                                >
+                                                    Start Turn
+                                                </button>
+                                                `
 
-                                        turn.status === "current"
+                                                :
 
-                                        ?
+                                                turn.status === "current"
 
-                                        `
-                                        <button
-                                            class="rotation-action-btn complete"
-                                            onclick="
-                                                changeTurnStatus(
-                                                    ${turn.id},
-                                                    'completed'
-                                                )
-                                            "
-                                        >
-                                            Complete Turn
-                                        </button>
-                                        `
+                                                ?
 
-                                        :
+                                                `
+                                                <button
+                                                    class="rotation-action-btn complete"
+                                                    onclick="
+                                                        changeTurnStatus(
+                                                            ${turn.id},
+                                                            'completed'
+                                                        )
+                                                    "
+                                                >
+                                                    Complete Turn
+                                                </button>
+                                                `
 
-                                        `
-                                        <span class="rotation-completed">
-                                            Completed
-                                        </span>
-                                        `
-                                    }
+                                                :
 
-                                </td>
+                                                `
+                                                <span class="rotation-completed">
+                                                    Completed
+                                                </span>
+                                                `
+                                            }
+
+                                        </td>
+                                    `
+                                    : ""
+                                }
 
                             </tr>
 
@@ -3643,23 +3691,24 @@ function renderRotation(turns) {
 
 
     /*
-     * Load groups allowed for the current user.
+     * Load groups only when the user can manage rotation.
      */
-    loadRotationGroups();
+    if (canManageRotation) {
+
+        loadRotationGroups();
 
 
-    /*
-     * Connect Generate Rotation button.
-     */
-    const generateButton =
-        document.getElementById("generateRotationBtn");
+        const generateButton =
+            document.getElementById("generateRotationBtn");
 
-    if (generateButton) {
+        if (generateButton) {
 
-        generateButton.addEventListener(
-            "click",
-            generateRotation
-        );
+            generateButton.addEventListener(
+                "click",
+                generateRotation
+            );
+
+        }
     }
 }
 
@@ -4461,6 +4510,8 @@ async function meetings() {
             throw new Error(data.message || "Failed to load meetings");
         }
 
+        console.log("MEETINGS SENT TO RENDERER:", data.meetings);
+
         renderMeetings(data.meetings);
 
     } catch (error) {
@@ -4529,136 +4580,46 @@ async function payFine(fineId) {
 
 function renderMeetings(meetings) {
 
-    if (!meetings || meetings.length === 0) {
-
-        content.innerHTML = `
-            <div class="card">
-
-                <div class="section-head">
-
-                    <div>
-                        <h3>Meetings</h3>
-
-                        <p>
-                            No meetings have been created yet.
-                        </p>
-                    </div>
-
-                    <button
-                        class="btn btn-primary"
-                        onclick="openModal('Create Meeting')"
-                    >
-                        ＋ New Meeting
-                    </button>
-
-                </div>
-
-                <div class="empty-state">
-                    <p>
-                        Create your first Mchezo meeting.
-                    </p>
-                </div>
-
-            </div>
-        `;
-
-        return;
-    }
-
+    console.log("RENDERING:", meetings);
 
     content.innerHTML = `
-
         <div class="card">
 
-            <div class="section-head">
+            <h3>Meetings</h3>
 
-                <div>
+            <p>
+                Found ${meetings.length} meetings.
+            </p>
 
-                    <h3>Meetings</h3>
+            ${meetings.map(meeting => `
+                <div class="card" style="margin-top:10px;">
+
+                    <h4>${meeting.title}</h4>
 
                     <p>
-                        Schedule meetings and record member attendance.
+                        Date: ${meeting.meeting_date}
                     </p>
+
+                    <p>
+                        Group: ${meeting.group_name}
+                    </p>
+
+                    ${
+                        meeting.location
+                        ? `<p>Location: ${meeting.location}</p>`
+                        : ""
+                    }
+
+                    ${
+                        meeting.agenda
+                        ? `<p>Agenda: ${meeting.agenda}</p>`
+                        : ""
+                    }
 
                 </div>
-
-                <button
-                    class="btn btn-primary"
-                    onclick="openModal('Create Meeting')"
-                >
-                    ＋ New Meeting
-                </button>
-
-            </div>
-
-
-<div class="grid three">
-
-    ${meetings.map(meeting => `
-
-        <div
-            class="card"
-            style="box-shadow:none"
-        >
-
-            <strong style="font-size:13px">
-                ${escapeHtml(meeting.title)}
-            </strong>
-
-
-            <p
-                class="muted"
-                style="font-size:11px"
-            >
-                ${escapeHtml(meeting.meeting_date)}
-            </p>
-
-
-            <p
-                class="muted"
-                style="font-size:11px"
-            >
-                Group:
-                ${escapeHtml(meeting.group_name)}
-            </p>
-
-
-            ${
-                meeting.location
-                ? `
-                    <p
-                        class="muted"
-                        style="font-size:11px"
-                    >
-                        Location:
-                        ${escapeHtml(meeting.location)}
-                    </p>
-                `
-                : ""
-            }
-
-
-            <div>
-                ${badge("Scheduled")}
-            </div>
-
-
-            <div class="actions">
-
-                <button class="btn btn-light" onclick="openAttendance(${meeting.id})">
-                            View Attendance
-            </button>
-
-            </div>
+            `).join("")}
 
         </div>
-
-    `).join("")}
-
-</div>
-
-</div>
-
     `;
 }
 
@@ -5296,12 +5257,18 @@ function renderFines(fines) {
             </div>
             `,
             `
-            <button
-                class="btn btn-primary"
-                onclick="openModal('Record Fine')"
-            >
-                ＋ Record Fine
-            </button>
+${
+    ["admin", "treasurer", "coordinator"].includes(window.currentUserRole)
+    ? `
+        <button
+            class="btn btn-primary"
+            onclick="openModal('Record Fine')"
+        >
+            ＋ Record Fine
+        </button>
+    `
+    : ""
+}
             `
         );
 
@@ -7769,7 +7736,10 @@ function renderUsers(users) {
     `;
 }
 
-function showPage(p){
+function showPage(p) {
+
+    console.log("SHOW PAGE:", p);
+    console.trace("WHO CALLED showPage?");
 
     document.querySelectorAll(".nav-item")
         .forEach(b =>
@@ -7784,22 +7754,22 @@ function showPage(p){
 
     closeMobile();
 
-    ({
-        dashboard,
-        mchezo,
-        members,
-        rounds,
-        contributions,
-        rotation,
-        payments,
-        meetings,
-        fines,
-        transactions,
-        reports,
-        auditLogs,
-        settings
-    }[p] || dashboard)();
-
+({
+    dashboard,
+    mchezo,
+    members,
+    rounds,
+    contributions,
+    rotation,
+    payments,
+    meetings,
+    fines,
+    transactions,
+    reports,
+    auditLogs,
+    settings,
+    profile
+}[p] || dashboard)();
 }
 
 function openAddUserModal() {
@@ -10136,6 +10106,357 @@ formData.append("start_date", startDate);
     }
 }
 
+async function profile() {
+
+    content.innerHTML = `
+        <div class="card">
+
+            <div class="section-head">
+                <div>
+                    <h3>My Profile</h3>
+                    <p>
+                        Update your personal account information.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+
+                <div class="field">
+                    <label>Full Name</label>
+                    <input
+                        type="text"
+                        id="profileFullName"
+                        placeholder="Full name"
+                    >
+                </div>
+
+                <div class="field">
+                    <label>Username</label>
+                    <input
+                        type="text"
+                        id="profileUsername"
+                        readonly
+                    >
+                    <small class="muted">
+                        Username cannot be changed.
+                    </small>
+                </div>
+
+                <div class="field">
+                    <label>Email</label>
+                    <input
+                        type="email"
+                        id="profileEmail"
+                        placeholder="Email address"
+                    >
+                </div>
+
+                <div class="field">
+                    <label>Phone</label>
+                    <input
+                        type="text"
+                        id="profilePhone"
+                        placeholder="Phone number"
+                    >
+                </div>
+
+                <div class="field">
+                    <label>Mchezo Group</label>
+                    <input
+                        type="text"
+                        id="profileGroup"
+                        readonly
+                    >
+                </div>
+
+
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="btn btn-primary"
+                    type="button"
+                    onclick="updateProfile()"
+                >
+                    Save Profile
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="card" style="margin-top:20px;">
+
+            <div class="section-head">
+                <div>
+                    <h3>Change Password</h3>
+                    <p>
+                        Change your KIJUMBE account password.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+
+                <div class="field">
+                    <label>Current Password</label>
+                    <input
+                        type="password"
+                        id="currentPassword"
+                        placeholder="Current password"
+                    >
+                </div>
+
+    <div class="field">
+        <label>New Password</label>
+
+        <input
+            type="password"
+            id="newPassword"
+            placeholder="New password"
+            minlength="6"
+        >
+
+        <small
+            id="passwordRequirement"
+            class="muted"
+            style="display:block;margin-top:5px;"
+        >
+            Password must contain at least 6 characters.
+        </small>
+    </div>
+
+                <div class="field">
+                    <label>Confirm New Password</label>
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        placeholder="Confirm new password"
+                    >
+                </div>
+
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="btn btn-primary"
+                    type="button"
+                    onclick="updateProfile()"
+                >
+                    Update Password
+                </button>
+
+            </div>
+
+        </div>
+    `;
+
+    await loadProfile();
+
+    const newPassword =
+    document.getElementById("newPassword");
+
+const passwordRequirement =
+    document.getElementById("passwordRequirement");
+
+if (newPassword && passwordRequirement) {
+
+    newPassword.addEventListener("input", () => {
+
+        if (newPassword.value.length === 0) {
+
+            passwordRequirement.textContent =
+                "Password must contain at least 6 characters.";
+
+            passwordRequirement.style.color = "";
+
+        } else if (newPassword.value.length < 6) {
+
+            passwordRequirement.textContent =
+                `Password must contain at least 6 characters. ${
+                    6 - newPassword.value.length
+                } more needed.`;
+
+            passwordRequirement.style.color = "#c62828";
+
+        } else {
+
+            passwordRequirement.textContent =
+                "Password length is valid.";
+
+            passwordRequirement.style.color = "#2e7d32";
+        }
+    });
+}
+}
+async function loadProfile() {
+
+    try {
+
+        const response =
+            await fetch("Auth/get_profile.php");
+
+        const data =
+            await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || "Failed to load profile."
+            );
+        }
+
+        const p = data.profile;
+
+        const fullName =
+            document.getElementById("profileFullName");
+
+        const username =
+            document.getElementById("profileUsername");
+
+        const email =
+            document.getElementById("profileEmail");
+
+        const phone =
+            document.getElementById("profilePhone");
+
+        const group =
+            document.getElementById("profileGroup");
+
+        const role =
+            document.getElementById("profileRole");
+
+
+        if (fullName) {
+            fullName.value = p.full_name || "";
+        }
+
+        if (username) {
+            username.value = p.username || "";
+        }
+
+        if (email) {
+            email.value = p.email || "";
+        }
+
+        if (phone) {
+            phone.value = p.phone || "";
+        }
+
+        if (group) {
+            group.value = p.group_name || "No Mchezo group";
+        }
+
+        if (role) {
+            role.value = p.role || "";
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Profile loading error:",
+            error
+        );
+
+        toast(
+            error.message ||
+            "Failed to load profile."
+        );
+    }
+}
+
+async function updateProfile() {
+
+    const formData = new FormData();
+
+    formData.append(
+        "full_name",
+        document.getElementById("profileFullName").value.trim()
+    );
+
+    formData.append(
+        "phone",
+        document.getElementById("profilePhone").value.trim()
+    );
+
+    formData.append(
+        "email",
+        document.getElementById("profileEmail").value.trim()
+    );
+
+    formData.append(
+        "current_password",
+        document.getElementById("currentPassword").value
+    );
+
+    formData.append(
+        "new_password",
+        document.getElementById("newPassword").value
+    );
+
+    formData.append(
+        "confirm_password",
+        document.getElementById("confirmPassword").value
+    );
+
+
+    try {
+
+        const response = await fetch(
+            "Auth/update_profile.php",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.message ||
+                "Failed to update profile."
+            );
+        }
+
+
+        toast(data.message);
+
+
+        /*
+         * Clear password fields
+         */
+
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+
+
+        /*
+         * Reload profile
+         */
+
+        await loadProfile();
+
+
+    } catch (error) {
+
+        console.error(
+            "Profile update error:",
+            error
+        );
+
+        toast(
+            error.message ||
+            "Failed to update profile."
+        );
+    }
+}
 
 
 

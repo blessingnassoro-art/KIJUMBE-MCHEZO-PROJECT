@@ -6,7 +6,8 @@ require_once "../includes/db.php";
 requireRole([
     "admin",
     "coordinator",
-    "treasurer"
+    "treasurer",
+    "member"
 ]);
 
 header("Content-Type: application/json");

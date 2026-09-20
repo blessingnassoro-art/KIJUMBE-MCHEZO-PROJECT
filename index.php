@@ -8,46 +8,52 @@ $fullName = $_SESSION["full_name"];
 $role = $_SESSION["role"];
 
 $permissions = [
-    "admin" => [
-        "dashboard",
-        "mchezo",
-        "members",
-        "rounds",
-        "contributions",
-        "rotation",
-        "payments",
-        "meetings",
-        "fines",
-        "transactions",
-        "reports",
-        "auditLogs",
-        "settings"
-    ],
+"admin" => [
+    "dashboard",
+    "mchezo",
+    "members",
+    "rounds",
+    "contributions",
+    "rotation",
+    "payments",
+    "meetings",
+    "fines",
+    "transactions",
+    "reports",
+    "auditLogs",
+    "settings",
+    "profile"
+],
 
-    "treasurer" => [
-        "dashboard",
-        "contributions",
-        "payments",
-        "fines",
-        "transactions",
-        "reports"
-    ],
+"treasurer" => [
+    "dashboard",
+    "contributions",
+    "payments",
+    "fines",
+    "transactions",
+    "reports",
+    "profile"
+],
 
-    "coordinator" => [
-        "dashboard",
-        "mchezo",
-        "members",
-        "rounds",
-        "rotation",
-        "meetings",
-        "reports"
-    ],
+"coordinator" => [
+    "dashboard",
+    "mchezo",
+    "members",
+    "rounds",
+    "rotation",
+    "meetings",
+    "reports",
+    "profile"
+],
 
-    "member" => [
-        "dashboard",
-        "contributions",
-        "payments"
-    ]
+"member" => [
+    "dashboard",
+    "contributions",
+    "payments",
+    "meetings",
+    "rotation",
+    "profile"
+]
 ];
 
 $userPermissions = $permissions[$role] ?? ["dashboard"];
@@ -151,6 +157,12 @@ $initials = strtoupper(
         </button>
     <?php endif; ?>
 
+    <?php if (canAccess("profile")): ?>
+        <button class="nav-item" data-page="profile">
+            <span>👤</span>My Profile
+        </button>
+    <?php endif; ?>
+
 
     <?php if (
         canAccess("meetings") ||
@@ -158,7 +170,8 @@ $initials = strtoupper(
         canAccess("transactions") ||
         canAccess("reports") ||
         canAccess("auditLogs") ||
-        canAccess("settings")
+        canAccess("settings") ||
+        canAccess("profile")
     ): ?>
 
         <p class="nav-label">MANAGEMENT</p>
@@ -205,9 +218,7 @@ $initials = strtoupper(
     <?php endif; ?>
 
 
-    <button id="themeToggle" class="theme-toggle">
-    🌙 Dark Mode
-</button>
+
 
 </nav>
 
@@ -232,8 +243,9 @@ $initials = strtoupper(
           <h2 id="pageTitle">Dashboard</h2>
           <span id="pageSubtitle">Overview of your Mchezo group</span>
         </div>
+            <button id="themeToggle" class="theme-toggle">Dark Mode</button>
         <div class="topbar-actions">
-          <button title="Notifications"><i class="fa-solid fa-bell"></i></button>
+          <!-- <button title="Notifications"><i class="fa-solid fa-bell"></i></button> -->
 
           <div class="top-profile">
             <div class="avatar small"><?= htmlspecialchars($initials) ?></div>
