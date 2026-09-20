@@ -3,7 +3,11 @@
 require_once "../includes/db.php";
 require_once "../includes/auth.php";
 
-requireRole(["admin", "coordinator"]);
+requireRole([
+    "admin",
+    "coordinator",
+    "treasurer"
+]);
 
 header("Content-Type: application/json");
 
@@ -12,6 +16,10 @@ try {
     $role = currentRole();
 
 
+    /*
+     * ADMIN
+     * Can see all Mchezo groups.
+     */
     if ($role === "admin") {
 
         $sql = "
@@ -32,12 +40,16 @@ try {
     }
 
 
-
+    /*
+     * TREASURER / COORDINATOR
+     * Can see only their own Mchezo group.
+     */
     else {
 
         requireMemberAccount();
 
-        $groupId = getCurrentUserGroupId($pdo);
+        $groupId =
+            getCurrentUserGroupId($pdo);
 
         $sql = "
             SELECT
@@ -62,18 +74,25 @@ try {
     }
 
 
-    $groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $groups =
+        $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
     echo json_encode($groups);
 
+
 } catch (PDOException $e) {
 
-    error_log("Get Mchezo groups error: " . $e->getMessage());
+    error_log(
+        "Get Mchezo groups error: " .
+        $e->getMessage()
+    );
 
     http_response_code(500);
 
     echo json_encode([
         "success" => false,
-        "message" => "Failed to load Mchezo groups."
+        "message" =>
+            "Failed to load Mchezo groups."
     ]);
 }

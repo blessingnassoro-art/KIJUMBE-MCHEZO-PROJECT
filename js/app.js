@@ -22,6 +22,74 @@ const pages={
     settings:{title:"Settings",sub:"Configure KIJUMBE"}
 };
 
+function initTheme() {
+
+    const savedTheme =
+        localStorage.getItem("kijumbeTheme");
+
+    const theme =
+        savedTheme || "light";
+
+    document.documentElement
+        .setAttribute("data-theme", theme);
+
+    updateThemeButton(theme);
+}
+
+
+function toggleTheme() {
+
+    const currentTheme =
+        document.documentElement
+            .getAttribute("data-theme") || "light";
+
+    const newTheme =
+        currentTheme === "dark"
+            ? "light"
+            : "dark";
+
+    document.documentElement
+        .setAttribute("data-theme", newTheme);
+
+    localStorage.setItem(
+        "kijumbeTheme",
+        newTheme
+    );
+
+    updateThemeButton(newTheme);
+}
+
+
+function updateThemeButton(theme) {
+
+    const button =
+        document.getElementById("themeToggle");
+
+    if (!button) return;
+
+    button.innerHTML =
+        theme === "dark"
+            ? "☀️ Light Mode"
+            : "🌙 Dark Mode";
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    initTheme();
+
+    const themeButton =
+        document.getElementById("themeToggle");
+
+    if (themeButton) {
+
+        themeButton.addEventListener(
+            "click",
+            toggleTheme
+        );
+    }
+
+});
+
 const content=document.getElementById("content"), 
       title=document.getElementById("pageTitle"), 
       subtitle=document.getElementById("pageSubtitle");

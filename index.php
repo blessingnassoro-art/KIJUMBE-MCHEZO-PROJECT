@@ -204,6 +204,11 @@ $initials = strtoupper(
 
     <?php endif; ?>
 
+
+    <button id="themeToggle" class="theme-toggle">
+    🌙 Dark Mode
+</button>
+
 </nav>
 
       <div class="sidebar-bottom">

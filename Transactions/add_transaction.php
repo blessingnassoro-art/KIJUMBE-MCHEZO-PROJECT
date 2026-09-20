@@ -32,7 +32,8 @@ if ($groupId <= 0 || $type === "" || $amount === "") {
 
     echo json_encode([
         "success" => false,
-        "message" => "Group, transaction type and amount are required."
+        "message" =>
+            "Group, transaction type and amount are required."
     ]);
 
     exit;
@@ -43,7 +44,8 @@ if (!is_numeric($amount) || $amount <= 0) {
 
     echo json_encode([
         "success" => false,
-        "message" => "Transaction amount must be greater than zero."
+        "message" =>
+            "Transaction amount must be greater than zero."
     ]);
 
     exit;
@@ -70,40 +72,90 @@ if (!in_array($type, $allowedTypes, true)) {
 
 try {
 
-    // Check that the Mchezo group exists
-$stmt = $pdo->prepare("
-    SELECT id, group_name
-    FROM mchezo_groups
-    WHERE id = ?
-    LIMIT 1
-");
+    $role = currentRole();
+
+
+    /*
+     * Get the selected Mchezo group.
+     */
+    $stmt = $pdo->prepare("
+        SELECT
+            id,
+            group_name
+        FROM mchezo_groups
+        WHERE id = ?
+        LIMIT 1
+    ");
 
     $stmt->execute([$groupId]);
 
-$group = $stmt->fetch(PDO::FETCH_ASSOC);
+    $group =
+        $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$group) {
+
+    if (!$group) {
 
         echo json_encode([
             "success" => false,
-            "message" => "Selected Mchezo group does not exist."
+            "message" =>
+                "Selected Mchezo group does not exist."
         ]);
 
         exit;
     }
 
 
-    // Use current date/time if no date was provided
-    if (!$transactionDate) {
-        $transactionDate = date("Y-m-d H:i:s");
+    /*
+     * TREASURER
+     *
+     * A Treasurer can only record transactions
+     * for their own Mchezo group.
+     *
+     * ADMIN
+     *
+     * Can record transactions for any group.
+     */
+    if ($role === "treasurer") {
+
+        requireMemberAccount();
+
+        $userGroupId =
+            getCurrentUserGroupId($pdo);
+
+        if ((int)$groupId !== $userGroupId) {
+
+            http_response_code(403);
+
+            echo json_encode([
+                "success" => false,
+                "message" =>
+                    "Access denied. You can only record transactions for your own Mchezo group."
+            ]);
+
+            exit;
+        }
     }
 
 
-    // Logged-in user
-    $recordedBy = $_SESSION["user_id"] ?? null;
+    /*
+     * Use current date/time if no date was provided.
+     */
+    if (!$transactionDate) {
+        $transactionDate =
+            date("Y-m-d H:i:s");
+    }
 
 
-    // Insert transaction
+    /*
+     * Logged-in user.
+     */
+    $recordedBy =
+        $_SESSION["user_id"] ?? null;
+
+
+    /*
+     * Insert transaction.
+     */
     $stmt = $pdo->prepare("
         INSERT INTO transactions
         (
@@ -129,32 +181,54 @@ if (!$group) {
         $groupId,
         $type,
         $amount,
-        $description ?: null,
+        $description !== ""
+            ? $description
+            : null,
         $transactionDate,
         $recordedBy
     ]);
 
+
+    /*
+     * Audit log.
+     */
     logAudit(
-    $_SESSION["user_id"],
-    "Record Transaction",
-    "Recorded a " . $type .
-    " transaction of " . $amount .
-    " for Mchezo group \"" . $group["group_name"] .
-    "\". Description: " . ($description !== "" ? $description : "None") . "."
-);
+        $_SESSION["user_id"],
+        "Record Transaction",
+        "Recorded a " . $type .
+        " transaction of " . $amount .
+        " for Mchezo group \"" .
+        $group["group_name"] .
+        "\". Description: " .
+        (
+            $description !== ""
+                ? $description
+                : "None"
+        ) . "."
+    );
+
 
     echo json_encode([
         "success" => true,
-        "message" => "Transaction recorded successfully.",
-        "transaction_id" => $pdo->lastInsertId()
+        "message" =>
+            "Transaction recorded successfully.",
+        "transaction_id" =>
+            $pdo->lastInsertId()
     ]);
 
+
 } catch (PDOException $e) {
+
+    error_log(
+        "Add transaction error: " .
+        $e->getMessage()
+    );
 
     http_response_code(500);
 
     echo json_encode([
         "success" => false,
-        "message" => "Failed to record transaction."
+        "message" =>
+            "Failed to record transaction."
     ]);
 }

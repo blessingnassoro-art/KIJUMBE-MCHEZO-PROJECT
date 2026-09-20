@@ -3,13 +3,18 @@
 require_once "../includes/auth.php";
 require_once "../includes/db.php";
 
-requireRole(["admin", "coordinator"]);
+requireRole([
+    "admin",
+    "coordinator",
+    "treasurer"
+]);
 
 header("Content-Type: application/json");
 
 try {
 
     $role = currentRole();
+
 
     /*
      * ADMIN
@@ -28,18 +33,22 @@ try {
                 m.created_by,
                 m.created_at,
                 g.group_name
+
             FROM meetings m
+
             INNER JOIN mchezo_groups g
                 ON m.group_id = g.id
+
             ORDER BY
                 m.meeting_date DESC,
                 m.id DESC
         ");
-
     }
 
+
     /*
-     * COORDINATOR
+     * TREASURER / COORDINATOR
+     *
      * Can only view meetings belonging
      * to their own Mchezo group.
      */
@@ -47,7 +56,8 @@ try {
 
         requireMemberAccount();
 
-        $groupId = getCurrentUserGroupId($pdo);
+        $groupId =
+            getCurrentUserGroupId($pdo);
 
         $stmt = $pdo->prepare("
             SELECT
@@ -60,25 +70,34 @@ try {
                 m.created_by,
                 m.created_at,
                 g.group_name
+
             FROM meetings m
+
             INNER JOIN mchezo_groups g
                 ON m.group_id = g.id
+
             WHERE m.group_id = ?
+
             ORDER BY
                 m.meeting_date DESC,
                 m.id DESC
         ");
 
-        $stmt->execute([$groupId]);
+        $stmt->execute([
+            $groupId
+        ]);
     }
 
 
-    $meetings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $meetings =
+        $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
     echo json_encode([
         "success" => true,
         "meetings" => $meetings
     ]);
+
 
 } catch (PDOException $e) {
 

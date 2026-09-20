@@ -18,6 +18,35 @@
   --shadow: 0 8px 25px rgba(20, 45, 36, .06);
 }
 
+[data-theme="dark"] {
+    --primary: #4caf8a;
+    --primary-dark: #3a8c6d;
+    --primary-soft: #18352c;
+    --bg: #111817;
+    --card: #1b2421;
+    --text: #edf4f1;
+    --muted: #9baaa4;
+    --border: #34413d;
+    --danger: #ef7777;
+    --warning: #d7a33b;
+    --success: #43b581;
+    --shadow: 0 8px 25px rgba(0, 0, 0, .25);
+}
+
+.theme-toggle {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    background: var(--primary-soft);
+}
+
 body {
   margin: 0;
   font-family: Inter, Segoe UI, Arial, sans-serif;
@@ -43,7 +72,7 @@ button {
 
 .sidebar {
   width: 255px;
-  background: #fff;
+  background: var(--card);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -104,7 +133,7 @@ button {
   border: 0;
   background: transparent;
   text-align: left;
-  color: #53615b;
+  color: var(--text);
   padding: 11px 13px;
   border-radius: 20px;
   margin: 2px 0;
@@ -121,7 +150,7 @@ button {
 }
 
 .nav-item:hover {
-  background: #f3f7f5;
+    background: var(--primary-soft);
 }
 
 .nav-item.active {
@@ -174,7 +203,7 @@ button {
   margin-top: 9px;
   width: 100%;
   border: 0;
-  background: #fff4f4;
+  background: var(--card);
   color: var(--danger);
   padding: 9px;
   border-radius: 8px;
@@ -190,7 +219,7 @@ button {
 
 .topbar {
   height: 86px;
-  background: #fff;
+  background: var(--card);
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -373,7 +402,8 @@ button {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: .5px;
-  background: #fafbfb;
+  background: var(--primary-soft);
+  color: var(--muted);
 }
 
 .table th,
@@ -502,9 +532,12 @@ button {
   border-radius: 8px;
   padding: 10px 11px;
   outline: none;
-  background: #fff;
+  background: var(--card);
+  color: var(--text);
 }
-
+.field input::placeholder {
+    color: var(--muted);
+}
 .field input:focus,
 .field select:focus {
   border-color: var(--primary);
@@ -616,7 +649,8 @@ button {
 
 .modal {
   width: min(520px, 100%);
-  background: #fff;
+  background: var(--card);
+  color: var(--text);
   border-radius: 14px;
   padding: 24px;
   position: relative;
@@ -798,7 +832,7 @@ button {
 .rotation-table td {
     padding: 15px 14px;
     text-align: left;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border);
     vertical-align: middle;
 }
 
@@ -817,7 +851,7 @@ button {
 }
 
 .rotation-table tbody tr:hover {
-    background: #f8fafc;
+    background: var(--primary-soft);
 }
 
 
@@ -904,7 +938,7 @@ button {
 .payment-table td {
     padding: 14px;
     text-align: left;
-    border-bottom: 1px solid #293e6a;
+    border-bottom: 1px solid var(--border);
     vertical-align: middle;
 }
 
@@ -918,7 +952,7 @@ button {
 }
 
 .payment-table tbody tr:hover {
-    background: #f8fafc;
+    background: var(--primary-soft);
 }
 
 .payment-status {
