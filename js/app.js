@@ -161,9 +161,8 @@ async function dashboard() {
         const currentTurn = data.current_turn;
         const upcomingTurn = data.upcoming_turn;
 
-        /*
-         * Current round information
-         */
+       
+
         const roundNumber = round
             ? round.round_number
             : "—";
@@ -176,9 +175,7 @@ async function dashboard() {
             ? round.group_name
             : "No active Mchezo group";
 
-        /*
-         * Collection information
-         */
+       
         const collected = round
             ? Number(round.collected_amount)
             : 0;
@@ -238,10 +235,7 @@ async function dashboard() {
                     <span>Member contribution</span>
                 </div>
 
-                <div>
-                    <strong>${currentRecipient}</strong>
-                    <span>Current recipient</span>
-                </div>
+
 
             </div>
 
@@ -328,12 +322,6 @@ async function dashboard() {
                 </div>
 
 
-                <div class="alert" style="margin-top:15px">
-
-                    Current recipient:
-                    <strong>${currentRecipient}</strong>.
-
-                </div>
 
                 `,
                 `<button
@@ -599,49 +587,692 @@ function contributionRows(contributions = []) {
     `;
 }
 
-//add members
 
 async function loadMembers() {
 
     try {
 
-        const response = await fetch("Members/get_members.php");
+        const response = await fetch(
+            "Members/get_members.php"
+        );
 
         if (!response.ok) {
-            throw new Error("Failed to load members");
+
+            throw new Error(
+                "Failed to load members"
+            );
+
         }
 
         const data = await response.json();
 
-state.members = data.map(member => ({
-    id: member.id,
-    groupId: Number(member.group_id || 0),
-    name: member.full_name,
-    phone: member.phone,
-    email: member.email,
-    joinDate: member.join_date,
-    role: "Member",
-    status: member.status === "active" ? "Active" : "Inactive",
-    group: member.group_name,
-    currentMembers: Number(member.current_members || 0),
-    maxMembers: Number(member.max_members || 0)
-}));
 
-//render members
- renderMembers();
+        // Make sure the response is an array
+        const membersData =
+            Array.isArray(data)
+                ? data
+                : (data.members || []);
+
+
+        // Convert database data into frontend state
+        state.members = membersData.map(member => ({
+
+            id: member.id,
+
+            groupId:
+                Number(member.group_id || 0),
+
+            name:
+                member.full_name || "",
+
+            phone:
+                member.phone || "",
+
+            email:
+                member.email || "",
+
+            joinDate:
+                member.join_date || "",
+
+            role:
+                "Member",
+
+            status:
+                member.status === "active"
+                    ? "Active"
+                    : "Inactive",
+
+            group:
+                member.group_name || "No Group",
+
+            currentMembers:
+                Number(member.current_members || 0),
+
+            maxMembers:
+                Number(member.max_members || 0)
+
+        }));
+
+
+        // Display members
+        renderMembers();
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "Load Members Error:",
+            error
+        );
+
 
         content.innerHTML = `
+
             <div class="card">
+
+                <h3>Members</h3>
+
                 <p style="color:red;">
+
                     Failed to load members from database.
+
                 </p>
+
             </div>
+
         `;
+
     }
+
+}
+
+
+
+function members() {
+
+    content.innerHTML = `
+
+        <div class="card">
+
+            <p>
+                Loading members...
+            </p>
+
+        </div>
+
+    `;
+
+
+    loadMembers();
+
+}
+
+
+
+
+function renderMembers() {
+
+    content.innerHTML = `
+
+        <div class="card">
+
+
+            <!-- ============================= -->
+            <!-- HEADER -->
+            <!-- ============================= -->
+
+            <div class="section-head">
+
+                <div>
+
+                    <h3>
+                        Group Members
+                    </h3>
+
+                    <p id="memberCount">
+
+                        ${state.members.length}
+                        members currently displayed
+
+                    </p>
+
+                </div>
+
+
+                <div
+                    style="
+                        display:flex;
+                        gap:8px;
+                        align-items:center;
+                    "
+                >
+
+                    <!-- SEARCH -->
+
+                    <input
+
+                        type="text"
+
+                        id="memberSearch"
+
+                        class="search"
+
+                        placeholder="Search members..."
+
+                        autocomplete="off"
+
+                    >
+
+
+                    <!-- ADD MEMBER -->
+
+                    <button
+
+                        class="btn btn-primary"
+
+                        onclick="openModal('Add Member')"
+
+                    >
+
+                        ＋ Add Member
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ============================= -->
+            <!-- MEMBERS TABLE -->
+            <!-- ============================= -->
+
+            <div class="table-wrap">
+
+                <table class="table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Member
+                            </th>
+
+                            <th>
+                                Phone
+                            </th>
+
+                            <th>
+                                Mchezo Group
+                            </th>
+
+                            <th>
+                                Capacity
+                            </th>
+
+                            <th>
+                                Role
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="memberRows">
+
+
+                        ${
+                            state.members.length === 0
+
+                            ?
+
+                            `
+                                <tr>
+
+                                    <td
+                                        colspan="7"
+                                        style="
+                                            text-align:center;
+                                            padding:30px;
+                                        "
+                                    >
+
+                                        No members found.
+
+                                    </td>
+
+                                </tr>
+                            `
+
+                            :
+
+                            state.members.map((m, i) => `
+
+                                <tr>
+
+
+                                    <!-- MEMBER -->
+
+                                    <td>
+
+                                        <div
+                                            class="member-cell"
+                                        >
+
+                                            <div
+                                                class="avatar"
+                                            >
+
+                                                ${avatar(m.name)}
+
+                                            </div>
+
+
+                                            <strong>
+
+                                                ${escapeHtml(
+                                                    m.name
+                                                )}
+
+                                            </strong>
+
+                                        </div>
+
+                                    </td>
+
+
+
+                                    <!-- PHONE -->
+
+                                    <td>
+
+                                        ${escapeHtml(
+                                            m.phone
+                                        )}
+
+                                    </td>
+
+
+
+                                    <!-- GROUP -->
+
+                                    <td>
+
+                                        <strong>
+
+                                            ${escapeHtml(
+                                                m.group ||
+                                                "No Group"
+                                            )}
+
+                                        </strong>
+
+                                    </td>
+
+
+
+                                    <!-- CAPACITY -->
+
+                                    <td>
+
+                                        <strong>
+
+                                            ${m.currentMembers}
+                                            /
+                                            ${m.maxMembers}
+
+                                        </strong>
+
+
+                                        <div
+                                            style="
+                                                font-size:12px;
+                                                margin-top:3px;
+                                            "
+                                        >
+
+                                            ${
+                                                m.maxMembers > 0 &&
+                                                m.currentMembers >=
+                                                m.maxMembers
+
+                                                ?
+
+                                                `
+                                                    <span
+                                                        style="
+                                                            color:#c62828;
+                                                        "
+                                                    >
+
+                                                        Full
+
+                                                    </span>
+                                                `
+
+                                                :
+
+                                                `
+                                                    <span
+                                                        style="
+                                                            opacity:.7;
+                                                        "
+                                                    >
+
+                                                        ${
+                                                            m.maxMembers > 0
+
+                                                            ?
+
+                                                            (
+                                                                m.maxMembers -
+                                                                m.currentMembers
+                                                            )
+
+                                                            :
+
+                                                            0
+                                                        }
+
+                                                        space${
+                                                            (
+                                                                m.maxMembers -
+                                                                m.currentMembers
+                                                            ) === 1
+                                                            ? ""
+                                                            : "s"
+                                                        }
+
+                                                        left
+
+                                                    </span>
+                                                `
+                                            }
+
+                                        </div>
+
+                                    </td>
+
+
+
+                                    <!-- ROLE -->
+
+                                    <td>
+
+                                        ${escapeHtml(
+                                            m.role
+                                        )}
+
+                                    </td>
+
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        ${badge(
+                                            m.status
+                                        )}
+
+                                    </td>
+
+
+
+                                    <!-- ACTION -->
+
+                                    <td>
+
+                                        <button
+
+                                            class="btn btn-light"
+
+                                            onclick="
+                                                editMember(${i})
+                                            "
+
+                                        >
+
+                                            Edit
+
+                                        </button>
+
+
+                                        <button
+
+                                            class="btn btn-light"
+
+                                            onclick="
+                                                deactivateMember(${m.id})
+                                            "
+
+                                        >
+
+                                            Deactivate
+
+                                        </button>
+
+                                    </td>
+
+
+                                </tr>
+
+                            `).join("")
+
+                        }
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    `;
+
+
+
+    // ========================================================
+    // MEMBER SEARCH
+    // ========================================================
+
+    const searchInput =
+        document.getElementById(
+            "memberSearch"
+        );
+
+
+    if (!searchInput) {
+
+        console.error(
+            "memberSearch input was not found."
+        );
+
+        return;
+
+    }
+
+
+    console.log(
+        "MEMBER SEARCH CONNECTED"
+    );
+
+
+    searchInput.addEventListener(
+        "input",
+        function () {
+
+
+            // Get what the user typed
+            const searchTerm =
+                this.value
+                    .trim()
+                    .toLowerCase();
+
+
+            // Get all table rows
+            const rows =
+                document.querySelectorAll(
+                    "#memberRows tr"
+                );
+
+
+            let visibleCount = 0;
+
+
+            // Search every row
+            rows.forEach(row => {
+
+
+                // Ignore the "No members found" row
+                if (
+                    row.querySelector(
+                        "td[colspan='7']"
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                // Get all text inside the row
+                const rowText =
+                    row.textContent
+                        .toLowerCase();
+
+
+                // Check whether search text exists
+                if (
+                    rowText.includes(
+                        searchTerm
+                    )
+                ) {
+
+                    row.style.display = "";
+
+                    visibleCount++;
+
+                } else {
+
+                    row.style.display = "none";
+
+                }
+
+            });
+
+
+
+            // =================================================
+            // UPDATE MEMBER COUNT
+            // =================================================
+
+            const memberCount =
+                document.getElementById(
+                    "memberCount"
+                );
+
+
+            if (memberCount) {
+
+                memberCount.textContent =
+                    `${visibleCount} members currently displayed`;
+
+            }
+
+
+
+            // =================================================
+            // SHOW "NO RESULTS" WHEN SEARCH FINDS NOTHING
+            // =================================================
+
+            let noResultsRow =
+                document.getElementById(
+                    "noMemberSearchResults"
+                );
+
+
+            if (
+                searchTerm !== "" &&
+                visibleCount === 0
+            ) {
+
+
+                if (!noResultsRow) {
+
+                    const tbody =
+                        document.getElementById(
+                            "memberRows"
+                        );
+
+
+                    noResultsRow =
+                        document.createElement(
+                            "tr"
+                        );
+
+
+                    noResultsRow.id =
+                        "noMemberSearchResults";
+
+
+                    noResultsRow.innerHTML = `
+
+                        <td
+                            colspan="7"
+                            style="
+                                text-align:center;
+                                padding:30px;
+                            "
+                        >
+
+                            No members match
+                            "<strong>${
+                                escapeHtml(
+                                    searchTerm
+                                )
+                            }</strong>".
+
+                        </td>
+
+                    `;
+
+
+                    tbody.appendChild(
+                        noResultsRow
+                    );
+
+                }
+
+
+            } else {
+
+
+                if (noResultsRow) {
+
+                    noResultsRow.remove();
+
+                }
+
+            }
+
+        }
+
+    );
+
 }
 
 
@@ -822,195 +1453,360 @@ async function saveFine() {
 }
 
 
-function members() {
 
-    content.innerHTML = `
-        <div class="card">
-            <p>Loading members...</p>
-        </div>
-    `;
+// function renderMembers(members = state.members) {
 
-    loadMembers();
-}
+//     content.innerHTML = `
+//         <div class="card">
+//             <div class="section-head">
+//                 <div>
+//                     <h3>Group Members</h3>
+//                     <p id="memberCount">
+//                         ${members.length} members currently displayed
+//                     </p>
+//                 </div>
+
+//                 <div style="display:flex;gap:8px">
+//                     <input
+//                         id="memberSearch"
+//                         class="search"
+//                         placeholder="Search members..."
+//                         type="text"
+//                     >
+
+//                     <button
+//                         class="btn btn-primary"
+//                         onclick="openModal('Add Member')"
+//                     >
+//                         ＋ Add Member
+//                     </button>
+//                 </div>
+//             </div>
+
+//             <div class="table-wrap">
+//                 <table class="table">
+
+//                     <thead>
+//                         <tr>
+//                             <th>Member</th>
+//                             <th>Phone</th>
+//                             <th>Mchezo Group</th>
+//                             <th>Capacity</th>
+//                             <th>Role</th>
+//                             <th>Status</th>
+//                             <th>Action</th>
+//                         </tr>
+//                     </thead>
+
+//                     <tbody id="memberRows">
+
+//                         ${
+//                             members.length === 0
+//                             ?
+//                             `
+//                             <tr>
+//                                 <td colspan="7" style="text-align:center;padding:30px;">
+//                                     No members found.
+//                                 </td>
+//                             </tr>
+//                             `
+//                             :
+//                             members.map((m, i) => `
+//                                 <tr>
+
+//                                     <td>
+//                                         <div class="member-cell">
+//                                             <div class="avatar">
+//                                                 ${avatar(m.name)}
+//                                             </div>
+
+//                                             <strong>
+//                                                 ${escapeHtml(m.name)}
+//                                             </strong>
+//                                         </div>
+//                                     </td>
+
+//                                     <td>
+//                                         ${escapeHtml(m.phone || "")}
+//                                     </td>
+
+//                                     <td>
+//                                         <strong>
+//                                             ${escapeHtml(m.group || "No Group")}
+//                                         </strong>
+//                                     </td>
+
+//                                     <td>
+//                                         <strong>
+//                                             ${m.currentMembers} / ${m.maxMembers}
+//                                         </strong>
+
+//                                         <div style="font-size:12px;margin-top:3px;">
+
+//                                             ${
+//                                                 m.currentMembers >= m.maxMembers
+
+//                                                 ?
+
+//                                                 `<span style="color:#c62828;">
+//                                                     Full
+//                                                 </span>`
+
+//                                                 :
+
+//                                                 `<span style="opacity:.7;">
+//                                                     ${
+//                                                         m.maxMembers -
+//                                                         m.currentMembers
+//                                                     }
+//                                                     space${
+//                                                         (
+//                                                             m.maxMembers -
+//                                                             m.currentMembers
+//                                                         ) === 1
+//                                                         ? ""
+//                                                         : "s"
+//                                                     } left
+//                                                 </span>`
+//                                             }
+
+//                                         </div>
+//                                     </td>
+
+//                                     <td>
+//                                         ${escapeHtml(m.role || "Member")}
+//                                     </td>
+
+//                                     <td>
+//                                         ${badge(m.status)}
+//                                     </td>
+
+//                                     <td>
+
+//                                         <button
+//                                             class="btn btn-light"
+//                                             onclick="editMember(${i})"
+//                                         >
+//                                             Edit
+//                                         </button>
+
+//                                         <button
+//                                             class="btn btn-light"
+//                                             onclick="deactivateMember(${m.id})"
+//                                         >
+//                                             Deactivate
+//                                         </button>
+
+//                                     </td>
+
+//                                 </tr>
+//                             `).join("")
+//                         }
+
+//                     </tbody>
+//                 </table>
+//             </div>
+//         </div>
+//     `;
 
 
- function renderMembers() {
+//     // ==============================
+//     // MEMBER SEARCH
+//     // ==============================
 
-        content.innerHTML = `
-        <div class="card">
+//     const searchInput =
+//         document.getElementById("memberSearch");
 
-        <div class="section-head">
+//     if (searchInput) {
 
-        <div>
-        <h3>Group Members</h3>
-        <p>
-            ${state.members.length}
-            members currently displayed
-        </p>
-        </div>
+//         searchInput.addEventListener("input", function () {
 
-        <div style="display:flex;gap:8px">
+//             const searchTerm =
+//                 this.value.trim().toLowerCase();
 
-        <input
-            id="memberSearch"
-            class="search"
-            placeholder="Search members..."
-        >
+//             const filteredMembers = state.members.filter(member => {
 
-        <button
-            class="btn btn-primary"
-            onclick="openModal('Add Member')"
-        >
-            ＋ Add Member
-        </button>
+//                 const name =
+//                     String(member.name || "").toLowerCase();
 
-        </div>
+//                 const phone =
+//                     String(member.phone || "").toLowerCase();
 
-        </div>
+//                 const group =
+//                     String(member.group || "").toLowerCase();
 
+//                 const role =
+//                     String(member.role || "").toLowerCase();
 
-        <div class="table-wrap">
+//                 const status =
+//                     String(member.status || "").toLowerCase();
 
-        <table class="table">
+//                 return (
+//                     name.includes(searchTerm) ||
+//                     phone.includes(searchTerm) ||
+//                     group.includes(searchTerm) ||
+//                     role.includes(searchTerm) ||
+//                     status.includes(searchTerm)
+//                 );
 
-        <thead>
-
-            <tr>
-                <th>Member</th>
-                <th>Phone</th>
-                <th>Mchezo Group</th>
-                <th>Capacity</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-
-        </thead>
+//             });
 
 
-        <tbody id="memberRows">
+//             // Update only the table body
+//             const rows =
+//                 document.getElementById("memberRows");
 
-            ${state.members.map((m, i) => `
-
-                <tr>
-
-                    <td>
-                        <div class="member-cell">
-
-                            <div class="avatar">
-                                ${avatar(m.name)}
-                            </div>
-
-                            <strong>
-                                ${m.name}
-                            </strong>
-
-                        </div>
-                    </td>
+//             const count =
+//                 document.getElementById("memberCount");
 
 
-                    <td>
-                        ${m.phone}
-                    </td>
+//             if (count) {
+//                 count.textContent =
+//                     `${filteredMembers.length} members currently displayed`;
+//             }
 
 
-                    <td>
-                        <strong>
-                            ${m.group || "No Group"}
-                        </strong>
-                    </td>
+//             if (!rows) return;
 
 
-                    <td>
+//             if (filteredMembers.length === 0) {
 
-                        <strong>
-                            ${m.currentMembers} / ${m.maxMembers}
-                        </strong>
+//                 rows.innerHTML = `
+//                     <tr>
+//                         <td
+//                             colspan="7"
+//                             style="
+//                                 text-align:center;
+//                                 padding:30px;
+//                             "
+//                         >
+//                             No members found for
+//                             "<strong>${escapeHtml(this.value)}</strong>".
+//                         </td>
+//                     </tr>
+//                 `;
 
-                        <div
-                            style="
-                                font-size:12px;
-                                margin-top:3px;
-                            "
-                        >
-
-                            ${
-                                m.currentMembers >= m.maxMembers
-
-                                ? `
-                                    <span style="color:#c62828;">
-                                        Full
-                                    </span>
-                                `
-
-                                : `
-                                    <span style="opacity:.7;">
-                                        ${m.maxMembers - m.currentMembers}
-                                        space${m.maxMembers - m.currentMembers === 1 ? "" : "s"}
-                                        left
-                                    </span>
-                                `
-                            }
-
-                        </div>
-
-                    </td>
+//                 return;
+//             }
 
 
-                    <td>
-                        ${m.role}
-                    </td>
+//             rows.innerHTML = filteredMembers.map(member => {
 
+//                 /*
+//                  * Find the original index in state.members.
+//                  * This is important because Edit Member
+//                  * uses the original member index.
+//                  */
+//                 const originalIndex =
+//                     state.members.indexOf(member);
 
-                    <td>
-                        ${badge(m.status)}
-                    </td>
+//                 return `
+//                     <tr>
 
+//                         <td>
+//                             <div class="member-cell">
 
-                    <td>
+//                                 <div class="avatar">
+//                                     ${avatar(member.name)}
+//                                 </div>
 
-                        <button
-                            class="btn btn-light"
-                            onclick="editMember(${i})"
-                        >
-                            Edit
-                        </button>
+//                                 <strong>
+//                                     ${escapeHtml(member.name)}
+//                                 </strong>
 
-                        <button
-                            class="btn btn-light"
-                            onclick="deactivateMember(${m.id})"
-                        >
-                            Deactivate
-                        </button>
+//                             </div>
+//                         </td>
 
-                    </td>
+//                         <td>
+//                             ${escapeHtml(member.phone || "")}
+//                         </td>
 
-                </tr>
+//                         <td>
+//                             <strong>
+//                                 ${escapeHtml(member.group || "No Group")}
+//                             </strong>
+//                         </td>
 
-            `).join("")}
+//                         <td>
 
-        </tbody>
+//                             <strong>
+//                                 ${member.currentMembers} /
+//                                 ${member.maxMembers}
+//                             </strong>
 
-        </table>
+//                             <div
+//                                 style="
+//                                     font-size:12px;
+//                                     margin-top:3px;
+//                                 "
+//                             >
 
-        </div>
+//                                 ${
+//                                     member.currentMembers >= member.maxMembers
 
-        </div>
-        `;
+//                                     ?
 
-        }
+//                                     `<span style="color:#c62828;">
+//                                         Full
+//                                     </span>`
 
-function members() {
+//                                     :
 
-    content.innerHTML = `
-        <div class="card">
-            <p>Loading members...</p>
-        </div>
-    `;
+//                                     `<span style="opacity:.7;">
+//                                         ${
+//                                             member.maxMembers -
+//                                             member.currentMembers
+//                                         }
+//                                         space${
+//                                             (
+//                                                 member.maxMembers -
+//                                                 member.currentMembers
+//                                             ) === 1
+//                                             ? ""
+//                                             : "s"
+//                                         } left
+//                                     </span>`
+//                                 }
 
-    loadMembers();
-}
-//deactivateMember
+//                             </div>
+
+//                         </td>
+
+//                         <td>
+//                             ${escapeHtml(member.role || "Member")}
+//                         </td>
+
+//                         <td>
+//                             ${badge(member.status)}
+//                         </td>
+
+//                         <td>
+
+//                             <button
+//                                 class="btn btn-light"
+//                                 onclick="editMember(${originalIndex})"
+//                             >
+//                                 Edit
+//                             </button>
+
+//                             <button
+//                                 class="btn btn-light"
+//                                 onclick="deactivateMember(${member.id})"
+//                             >
+//                                 Deactivate
+//                             </button>
+
+//                         </td>
+
+//                     </tr>
+//                 `;
+
+//             }).join("");
+
+//         });
+//     }
+// }
+
 
 async function deactivateMember(id) {
 
@@ -4532,7 +5328,6 @@ async function meetings() {
     }
 }
 
-
 async function payFine(fineId) {
 
     const confirmed = confirm(
@@ -5345,22 +6140,40 @@ async function saveAttendance(meetingId) {
 
 async function fines() {
 
+    const role = window.currentUserRole || "";
+
+    const canManageFines = [
+        "admin",
+        "treasurer",
+        "coordinator"
+    ].includes(role);
+
+    const pageTitle = role === "member"
+        ? "My Fines"
+        : "Fines";
+
+    const pageDescription = role === "member"
+        ? "View fines recorded against your account."
+        : "Record and monitor member fines according to your group rules.";
+
     simplePage(
-        "Fines",
-        "Record fines according to your group rules.",
+        pageTitle,
+        pageDescription,
         `
         <div class="card">
             <p>Loading fines...</p>
         </div>
         `,
-        `
-        <button
-            class="btn btn-primary"
-            onclick="openModal('Record Fine')"
-        >
-            ＋ Record Fine
-        </button>
-        `
+        canManageFines
+            ? `
+                <button
+                    class="btn btn-primary"
+                    onclick="openModal('Record Fine')"
+                >
+                    ＋ Record Fine
+                </button>
+              `
+            : ""
     );
 
     try {
@@ -5370,9 +6183,11 @@ async function fines() {
         const data = await response.json();
 
         if (!response.ok || !data.success) {
+
             throw new Error(
                 data.message || "Failed to load fines."
             );
+
         }
 
         renderFines(data.fines);
@@ -5384,10 +6199,11 @@ async function fines() {
         content.innerHTML = `
             <div class="card">
 
-                <h3>Fines</h3>
+                <h3>${escapeHtml(pageTitle)}</h3>
 
                 <p style="color:red;">
-                    Failed to load fines: ${escapeHtml(error.message)}
+                    Failed to load fines:
+                    ${escapeHtml(error.message)}
                 </p>
 
             </div>
@@ -5398,43 +6214,142 @@ async function fines() {
 
 function renderFines(fines) {
 
+    const role = window.currentUserRole || "";
+
+    const canManageFines = [
+        "admin",
+        "treasurer",
+        "coordinator"
+    ].includes(role);
+
+    const pageTitle = role === "member"
+        ? "My Fines"
+        : "Fines";
+
+    const pageDescription = role === "member"
+        ? "View fines recorded against your account."
+        : "Record and monitor member fines according to your group rules.";
+
+
+    /*
+     * EMPTY STATE
+     */
     if (!fines || fines.length === 0) {
 
         simplePage(
-            "Fines",
-            "Record fines according to your group rules.",
+            pageTitle,
+            pageDescription,
             `
             <div class="empty-state">
 
                 <p>
-                    No fines have been recorded yet.
+                    ${
+                        role === "member"
+                            ? "You currently have no fines."
+                            : "No fines have been recorded yet."
+                    }
                 </p>
 
             </div>
             `,
-            `
-${
-    ["admin", "treasurer", "coordinator"].includes(window.currentUserRole)
-    ? `
-        <button
-            class="btn btn-primary"
-            onclick="openModal('Record Fine')"
-        >
-            ＋ Record Fine
-        </button>
-    `
-    : ""
-}
-            `
+            canManageFines
+                ? `
+                    <button
+                        class="btn btn-primary"
+                        onclick="openModal('Record Fine')"
+                    >
+                        ＋ Record Fine
+                    </button>
+                  `
+                : ""
         );
 
         return;
     }
 
 
+    /*
+     * MEMBER VIEW
+     *
+     * Member can only VIEW their fines.
+     */
+    if (role === "member") {
+
+        simplePage(
+            "My Fines",
+            "View fines recorded against your account.",
+            `
+            <div class="table-wrap">
+
+                <table class="table">
+
+                    <thead>
+
+                        <tr>
+                            <th>Reason</th>
+                            <th>Meeting</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        ${fines.map(fine => `
+
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        ${escapeHtml(fine.reason)}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    ${
+                                        fine.meeting_title
+                                            ? escapeHtml(fine.meeting_title)
+                                            : "—"
+                                    }
+                                </td>
+
+                                <td class="amount">
+                                    ${money(fine.amount)}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(fine.created_at)}
+                                </td>
+
+                                <td>
+                                    ${badge(fine.status)}
+                                </td>
+
+                            </tr>
+
+                        `).join("")}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+            `,
+            ""
+        );
+
+        return;
+    }
+
+
+    /*
+     * ADMIN / TREASURER / COORDINATOR VIEW
+     */
     simplePage(
         "Fines",
-        "Record fines according to your group rules.",
+        pageDescription,
         `
         <div class="table-wrap">
 
@@ -5474,8 +6389,8 @@ ${
                             <td>
                                 ${
                                     fine.meeting_title
-                                    ? escapeHtml(fine.meeting_title)
-                                    : "—"
+                                        ? escapeHtml(fine.meeting_title)
+                                        : "—"
                                 }
                             </td>
 
@@ -5500,24 +6415,20 @@ ${
                                 ${
                                     fine.status === "unpaid"
 
-                                    ?
+                                        ? `
+                                            <button
+                                                class="btn btn-light"
+                                                onclick="payFine(${fine.id})"
+                                            >
+                                                Mark Paid
+                                            </button>
+                                          `
 
-                                    `
-                                    <button
-                                        class="btn btn-light"
-                                        onclick="payFine(${fine.id})"
-                                    >
-                                        Mark Paid
-                                    </button>
-                                    `
-
-                                    :
-
-                                    `
-                                    <span class="muted">
-                                        Paid
-                                    </span>
-                                    `
+                                        : `
+                                            <span class="muted">
+                                                Paid
+                                            </span>
+                                          `
                                 }
 
                             </td>
@@ -5532,14 +6443,16 @@ ${
 
         </div>
         `,
-        `
-        <button
-            class="btn btn-primary"
-            onclick="openModal('Record Fine')"
-        >
-            ＋ Record Fine
-        </button>
-        `
+        canManageFines
+            ? `
+                <button
+                    class="btn btn-primary"
+                    onclick="openModal('Record Fine')"
+                >
+                    ＋ Record Fine
+                </button>
+              `
+            : ""
     );
 }
 
@@ -7661,7 +8574,7 @@ function settings() {
 
                 <div class="field">
                     <label>Timezone</label>
-                    <input value="Africa/Dar_es_Salaam">
+                    <input value="TANZANIA">
                 </div>
             </div>
 
@@ -7675,11 +8588,7 @@ function settings() {
 
             <hr style="border:0;border-top:1px solid var(--border);margin:25px 0">
 
-            <h3 style="font-size:14px">User Roles</h3>
 
-            <p class="muted" style="font-size:11px">
-                Administrator · Treasurer · Mchezo Coordinator · Member
-            </p>
         </div>
 
         <div class="card" style="margin-top:20px;">

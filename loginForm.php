@@ -12,14 +12,42 @@
         <section class="form-container" id="login">
             <h2 data-i18n="welcome">Welcome to Kijumbe Management System</h2>
             <p data-i18n="loginPrompt">Please login to continue.</p>
+<?php if (isset($_GET['reset']) && $_GET['reset'] === 'success'): ?>
+
+    <p style="
+        color: #2e7d32;
+        background: #e8f5e9;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+        font-size: 14px;
+    ">
+        Password reset successfully. You can now login with your new password.
+    </p>
+
+<?php endif; ?>
+
+
             <?php if (isset($_GET['error'])): ?>
-            <p style="color: #d33; background: #fdeaea; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;">
-                <?php
-                    if ($_GET['error'] === 'empty_fields') echo "Please fill in all required fields.";
-                    elseif ($_GET['error'] === 'database_unavailable') echo "Database connection is not configured.";
-                    else echo "Invalid email address or password.";
+
+                <p style="
+                    color: #d33;
+                    background: #fdeaea;
+                    padding: 10px;
+                    border-radius: 6px;
+                    margin-bottom: 15px;
+                    font-size: 14px;
+                ">
+                    <?php
+                        if ($_GET['error'] === 'empty_fields')
+                            echo "Please fill in all required fields.";
+                        elseif ($_GET['error'] === 'database_unavailable')
+                            echo "Database connection is not configured.";
+                        else
+                            echo "Invalid email address or password.";
                     ?>
-            </p>
+                </p>
+
             <?php endif; ?>
             <form action="auth/login.php" method="post">
                 <div class="input-group">
@@ -37,8 +65,18 @@
                         </label>
                     </div>
                 <button type="submit">Login</button>
-            </form>
-            <p>Don't have an account? <a href="./register.php">Register here</a>.</p>
+</form>
+
+            <p style="margin-top: 12px;">
+                <a href="auth/forgot_password.php" style="text-decoration: none;">
+                    Forgot Password?
+                </a>
+            </p>
+
+            <p>
+                Don't have an account?
+                <a href="./register.php">Register here</a>.
+            </p>
         </section>
     </div>
     <script src="js/kijumbe.js?v=3"></script>

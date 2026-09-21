@@ -51,6 +51,7 @@ $permissions = [
     "contributions",
     "payments",
     "meetings",
+    "fines",
     "rotation",
     "profile"
 ]
