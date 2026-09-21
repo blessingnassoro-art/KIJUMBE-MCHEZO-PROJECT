@@ -224,7 +224,7 @@ $initials = strtoupper(
 
       <div class="sidebar-bottom">
         <div class="profile-mini">
-          <div class="avatar">AM</div>
+          <!-- <div class="avatar">AM</div> -->
           <div>
             <?= htmlspecialchars($fullName) ?>
             <small><?= htmlspecialchars(ucfirst($role)) ?></small>

@@ -4580,46 +4580,202 @@ async function payFine(fineId) {
 
 function renderMeetings(meetings) {
 
-    console.log("RENDERING:", meetings);
+    const role = window.currentUserRole;
 
-    content.innerHTML = `
-        <div class="card">
+    const canCreateMeeting =
+        role === "admin" ||
+        role === "coordinator";
 
-            <h3>Meetings</h3>
 
-            <p>
-                Found ${meetings.length} meetings.
-            </p>
+    /*
+     * Empty state
+     */
+    if (!meetings || meetings.length === 0) {
 
-            ${meetings.map(meeting => `
-                <div class="card" style="margin-top:10px;">
+        content.innerHTML = `
+            <div class="card">
 
-                    <h4>${meeting.title}</h4>
+                <div class="section-head">
 
-                    <p>
-                        Date: ${meeting.meeting_date}
-                    </p>
+                    <div>
+                        <h3>Meetings</h3>
 
-                    <p>
-                        Group: ${meeting.group_name}
-                    </p>
-
-                    ${
-                        meeting.location
-                        ? `<p>Location: ${meeting.location}</p>`
-                        : ""
-                    }
+                        <p>
+                            No meetings have been created yet.
+                        </p>
+                    </div>
 
                     ${
-                        meeting.agenda
-                        ? `<p>Agenda: ${meeting.agenda}</p>`
+                        canCreateMeeting
+                        ? `
+                            <button
+                                class="btn btn-primary"
+                                type="button"
+                                onclick="openModal('Create Meeting')"
+                            >
+                                ＋ New Meeting
+                            </button>
+                        `
                         : ""
                     }
 
                 </div>
-            `).join("")}
+
+                <div class="empty-state">
+
+                    <p>
+                        ${
+                            canCreateMeeting
+                            ? "Create your first Mchezo meeting."
+                            : "No meetings are available for your Mchezo group."
+                        }
+                    </p>
+
+                </div>
+
+            </div>
+        `;
+
+        return;
+    }
+
+
+    /*
+     * Meetings exist
+     */
+
+    content.innerHTML = `
+
+        <div class="card">
+
+            <div class="section-head">
+
+                <div>
+
+                    <h3>Meetings</h3>
+
+                    <p>
+                        ${
+                            role === "member"
+                            ? "View meetings for your Mchezo group."
+                            : "Schedule meetings and record member attendance."
+                        }
+                    </p>
+
+                </div>
+
+
+                ${
+                    canCreateMeeting
+                    ? `
+                        <button
+                            class="btn btn-primary"
+                            type="button"
+                            onclick="openModal('Create Meeting')"
+                        >
+                            ＋ New Meeting
+                        </button>
+                    `
+                    : ""
+                }
+
+            </div>
+
+
+            <div class="grid three">
+
+                ${meetings.map(meeting => `
+
+                    <div
+                        class="card"
+                        style="box-shadow:none"
+                    >
+
+                        <h4>
+                            ${escapeHtml(meeting.title || "")}
+                        </h4>
+
+
+                        <p
+                            class="muted"
+                            style="font-size:11px"
+                        >
+                            Date:
+                            ${escapeHtml(meeting.meeting_date || "")}
+                        </p>
+
+
+                        <p
+                            class="muted"
+                            style="font-size:11px"
+                        >
+                            Group:
+                            ${escapeHtml(meeting.group_name || "")}
+                        </p>
+
+
+                        ${
+                            meeting.location
+                            ? `
+                                <p
+                                    class="muted"
+                                    style="font-size:11px"
+                                >
+                                    Location:
+                                    ${escapeHtml(meeting.location)}
+                                </p>
+                            `
+                            : ""
+                        }
+
+
+                        ${
+                            meeting.agenda
+                            ? `
+                                <p
+                                    class="muted"
+                                    style="font-size:11px"
+                                >
+                                    Agenda:
+                                    ${escapeHtml(meeting.agenda)}
+                                </p>
+                            `
+                            : ""
+                        }
+
+
+                        <div style="margin-top:10px;">
+                            ${badge("Scheduled")}
+                        </div>
+
+
+                        ${
+                            role === "admin" ||
+                            role === "coordinator"
+                            ? `
+                                <div class="actions">
+
+                                    <button
+                                        class="btn btn-light"
+                                        type="button"
+                                        onclick="openAttendance(${meeting.id})"
+                                    >
+                                        View Attendance
+                                    </button>
+
+                                </div>
+                            `
+                            : ""
+                        }
+
+                    </div>
+
+                `).join("")}
+
+            </div>
 
         </div>
+
     `;
 }
 
